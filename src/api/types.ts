@@ -1,0 +1,201 @@
+/**
+ * 与 Rust 端 `src-tauri/src/domain/model.rs`、`settings.rs` 对应的数据类型。
+ * 约定：日期为 `YYYY-MM-DD` 字符串，时间点为 UTC 毫秒，计划时长以分钟计，学习时长以秒计。
+ */
+
+/** 计划颜色名，前端映射到具体色值 */
+export type PlanColor =
+  'blue' | 'purple' | 'pink' | 'red' | 'orange' | 'yellow' | 'green' | 'teal' | 'gray';
+
+export interface Plan {
+  id: number;
+  name: string;
+  /** 想达到的水平 / 目标说明 */
+  goal: string;
+  color: PlanColor;
+  totalMinutes: number;
+  startDate: string;
+  endDate: string;
+  /** 学习日位掩码：bit0 = 周一 … bit6 = 周日 */
+  studyWeekdays: number;
+  archived: boolean;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface PlanInput {
+  name: string;
+  goal: string;
+  color: PlanColor;
+  totalMinutes: number;
+  startDate: string;
+  endDate: string;
+  studyWeekdays: number;
+}
+
+export interface PlanSummary extends Plan {
+  /** 累计学习时长（含超额和正在进行的计时） */
+  studiedSeconds: number;
+  studyDayCount: number;
+}
+
+export interface AllocationPreview {
+  studyDayCount: number;
+  minDailyMinutes: number;
+  maxDailyMinutes: number;
+}
+
+export type SessionSource = 'timer' | 'manual';
+
+export interface Session {
+  id: number;
+  planId: number;
+  startAt: number;
+  /** 为空表示正在计时 */
+  endAt: number | null;
+  source: SessionSource;
+  note: string;
+}
+
+export interface SessionInput {
+  planId: number;
+  startAt: number;
+  endAt: number;
+  note?: string;
+}
+
+export interface PlanDayProgress {
+  planId: number;
+  targetMinutes: number;
+  studiedSeconds: number;
+}
+
+export interface TimerStatus {
+  nowMs: number;
+  today: string;
+  running: Session | null;
+  /** 正在计时的计划今天的目标与已学 */
+  planToday: PlanDayProgress | null;
+}
+
+/** 未达标时长的处理方式：均分到后续学习日 / 拆分到指定日子 / 全加到下一个学习日 */
+export type AdjustMode = 'spread' | 'split' | 'nextDay';
+
+export interface AdjustItem {
+  date: string;
+  minutes: number;
+}
+
+export interface AdjustRequest {
+  planId: number;
+  fromDate: string;
+  minutes: number;
+  mode: AdjustMode;
+  /** 仅 split 使用 */
+  items?: AdjustItem[];
+}
+
+export interface Adjustment {
+  id: number;
+  planId: number;
+  fromDate: string;
+  mode: AdjustMode;
+  /** 是否由默认处理方式自动生成 */
+  auto: boolean;
+  items: AdjustItem[];
+  createdAt: number;
+}
+
+export interface PendingShortfall {
+  planId: number;
+  planName: string;
+  date: string;
+  minutes: number;
+}
+
+export interface Todo {
+  id: number;
+  date: string;
+  planId: number | null;
+  title: string;
+  done: boolean;
+  sortOrder: number;
+}
+
+export interface TodoInput {
+  date: string;
+  planId?: number | null;
+  title: string;
+}
+
+export interface TodoPatch {
+  title?: string;
+  done?: boolean;
+  /** 传 null 取消关联计划 */
+  planId?: number | null;
+}
+
+export interface DayPlanEntry {
+  planId: number;
+  name: string;
+  color: PlanColor;
+  isStudyDay: boolean;
+  /** 实际目标 = 基础分配 - 调出 + 调入 */
+  targetMinutes: number;
+  baseMinutes: number;
+  incomingMinutes: number;
+  outgoingMinutes: number;
+  studiedSeconds: number;
+  /** 过去的日子里尚未处理的未达标分钟数 */
+  pendingMinutes: number;
+}
+
+export interface DayCell {
+  date: string;
+  targetMinutes: number;
+  studiedSeconds: number;
+  planCount: number;
+  adjusted: boolean;
+  pendingMinutes: number;
+}
+
+export interface MonthOverview {
+  year: number;
+  month: number;
+  today: string;
+  days: DayCell[];
+}
+
+export interface DayDetail {
+  date: string;
+  today: string;
+  plans: DayPlanEntry[];
+  sessions: Session[];
+  todos: Todo[];
+  adjustments: Adjustment[];
+}
+
+export interface Clock {
+  nowMs: number;
+  today: string;
+  /** 实际使用的 IANA 时区名 */
+  timezone: string;
+}
+
+export type ShortfallDefault = 'suspend' | 'spread' | 'nextDay';
+export type CountdownEnd = 'pause' | 'continue';
+export type TimerStyle = 'digital' | 'analog';
+export type TimerDisplay = 'countDown' | 'countUp';
+
+export interface Settings {
+  /** `system` 或 IANA 时区名 */
+  timezone: string;
+  shortfallDefault: ShortfallDefault;
+  countdownEnd: CountdownEnd;
+  timerStyle: TimerStyle;
+  timerDisplay: TimerDisplay;
+  toggleHotkey: string;
+  closeToTray: boolean;
+  /** 单次计时超过多少分钟提醒，0 表示不提醒 */
+  longSessionMinutes: number;
+}

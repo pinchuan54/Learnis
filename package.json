@@ -20,9 +20,11 @@
     "test:watch": "vitest",
     "rust:fmt": "cargo fmt --manifest-path src-tauri/Cargo.toml --all -- --check",
     "rust:lint": "cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings",
-    "check": "npm run typecheck && npm run lint && npm run format:check && npm run test && npm run rust:fmt && npm run rust:lint"
+    "check": "npm run typecheck && npm run lint && npm run format:check && npm run test && npm run rust:fmt && npm run rust:lint && npm run rust:test",
+    "rust:test": "cargo test --manifest-path src-tauri/Cargo.toml"
   },
   "dependencies": {
+    "@tanstack/react-query": "^5.107.1",
     "@tauri-apps/api": "^2.12.4",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",

@@ -11,7 +11,8 @@ import { ThemeContext, type ThemeContextValue } from './ThemeContext';
 
 const DARK_QUERY = '(prefers-color-scheme: dark)';
 
-// TODO(#10)：设置页落地后改为保存到 SQLite 设置表
+// 外观是本机界面偏好，且需在页面渲染前读取（见 public/theme-init.js），
+// 因此保存在 WebView 本地存储，而不是 SQLite 设置表
 function readStoredPreference(): ThemePreference {
   try {
     return parseThemePreference(window.localStorage.getItem(THEME_STORAGE_KEY));
