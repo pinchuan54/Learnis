@@ -1,0 +1,28 @@
+/* 各页面共用的版式 */
+
+.page {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: var(--space-8) var(--space-10) var(--space-10);
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin-bottom: var(--space-6);
+}
+
+.eyebrow {
+  font-size: var(--text-footnote);
+  font-weight: 600;
+  color: var(--color-label-secondary);
+}
+
+.title {
+  font-family: var(--font-display);
+  font-size: var(--text-title1);
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}

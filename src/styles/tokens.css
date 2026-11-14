@@ -1,0 +1,110 @@
+/*
+ * 设计令牌
+ * 参考苹果设计语言：克制的中性色、系统蓝强调色、半透明分层、大圆角。
+ * 浅色为默认值，深色在 prefers-color-scheme: dark 下覆盖。
+ */
+
+:root {
+  /* 字体：Windows 用 Segoe UI Variable + 微软雅黑，macOS 自动落到 SF + 苹方 */
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI Variable Text', 'Segoe UI', 'PingFang SC',
+    'Microsoft YaHei UI', 'Microsoft YaHei', system-ui, sans-serif;
+  --font-display:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI Variable Display', 'Segoe UI', 'PingFang SC',
+    'Microsoft YaHei UI', 'Microsoft YaHei', system-ui, sans-serif;
+  --font-mono: 'SF Mono', 'Cascadia Mono', Consolas, ui-monospace, monospace;
+
+  /* 字号 */
+  --text-caption: 12px;
+  --text-footnote: 13px;
+  --text-body: 14px;
+  --text-headline: 15px;
+  --text-title3: 18px;
+  --text-title2: 22px;
+  --text-title1: 28px;
+  --text-large-title: 34px;
+
+  /* 间距（4px 网格） */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+
+  /* 圆角 */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+
+  /* 动效 */
+  --ease-standard: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --duration-fast: 120ms;
+  --duration-normal: 200ms;
+
+  /* 布局尺寸 */
+  --titlebar-height: 40px;
+  --sidebar-width: 232px;
+
+  /* 文本颜色 */
+  --color-label: rgba(0, 0, 0, 0.88);
+  --color-label-secondary: rgba(60, 60, 67, 0.68);
+  --color-label-tertiary: rgba(60, 60, 67, 0.4);
+
+  /* 强调色与状态色 */
+  --color-accent: #007aff;
+  --color-accent-hover: #0a6fe0;
+  --color-on-accent: #ffffff;
+  --color-success: #34c759;
+  --color-warning: #ff9500;
+  --color-danger: #ff3b30;
+
+  /* 填充与分隔 */
+  --color-fill: rgba(120, 120, 128, 0.1);
+  --color-fill-strong: rgba(120, 120, 128, 0.18);
+  --color-separator: rgba(60, 60, 67, 0.14);
+
+  /* 表面：窗口底层为 Mica，内容区与卡片在其上叠加 */
+  --surface-content: rgba(255, 255, 255, 0.72);
+  --surface-card: #ffffff;
+  --shadow-card: 0 0 0 0.5px rgba(0, 0, 0, 0.06), 0 2px 8px rgba(0, 0, 0, 0.05);
+
+  /* 非 Tauri 环境（浏览器预览）下代替 Mica 的底色 */
+  --surface-fallback: #ecedf1;
+
+  /* 标题栏按钮 */
+  --caption-hover: rgba(0, 0, 0, 0.06);
+  --caption-pressed: rgba(0, 0, 0, 0.1);
+  --caption-close-hover: #c42b1c;
+  --caption-close-pressed: #a52618;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-label: rgba(255, 255, 255, 0.92);
+    --color-label-secondary: rgba(235, 235, 245, 0.62);
+    --color-label-tertiary: rgba(235, 235, 245, 0.34);
+
+    --color-accent: #0a84ff;
+    --color-accent-hover: #3396ff;
+    --color-success: #30d158;
+    --color-warning: #ff9f0a;
+    --color-danger: #ff453a;
+
+    --color-fill: rgba(120, 120, 128, 0.2);
+    --color-fill-strong: rgba(120, 120, 128, 0.32);
+    --color-separator: rgba(255, 255, 255, 0.1);
+
+    --surface-content: rgba(58, 58, 58, 0.3);
+    --surface-card: #313134;
+    --shadow-card: 0 0 0 0.5px rgba(255, 255, 255, 0.08), 0 2px 8px rgba(0, 0, 0, 0.3);
+
+    --surface-fallback: #1f1f22;
+
+    --caption-hover: rgba(255, 255, 255, 0.08);
+    --caption-pressed: rgba(255, 255, 255, 0.05);
+  }
+}
