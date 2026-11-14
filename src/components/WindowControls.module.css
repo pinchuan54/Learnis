@@ -1,0 +1,43 @@
+.controls {
+  display: flex;
+  height: 100%;
+}
+
+.control {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-text);
+  transition: background-color var(--duration-fast) var(--ease-standard);
+}
+
+.control:hover {
+  background: var(--caption-hover);
+}
+
+.control:active {
+  background: var(--caption-pressed);
+}
+
+.control:focus-visible {
+  outline-offset: -2px;
+}
+
+.close:hover {
+  background: var(--caption-close-hover);
+  color: #ffffff;
+}
+
+.close:active {
+  background: var(--caption-close-pressed);
+  color: #ffffff;
+}
+
+.glyph {
+  width: 10px;
+  height: 10px;
+}
