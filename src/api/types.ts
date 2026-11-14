@@ -196,6 +196,8 @@ export interface Settings {
   timerDisplay: TimerDisplay;
   toggleHotkey: string;
   closeToTray: boolean;
+  /** 静默启动：开机自启时不显示窗口，只在托盘运行 */
+  silentStart: boolean;
   /** 单次计时超过多少分钟提醒，0 表示不提醒 */
   longSessionMinutes: number;
 }

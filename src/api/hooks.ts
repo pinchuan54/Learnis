@@ -19,6 +19,7 @@ import type {
 export const queryKeys = {
   clock: ['clock'] as const,
   settings: ['settings'] as const,
+  autostart: ['autostart'] as const,
   timezones: ['timezones'] as const,
   plans: (includeArchived: boolean) => ['plans', includeArchived] as const,
   month: (year: number, month: number) => ['month', year, month] as const,
@@ -34,6 +35,10 @@ export const useClock = () =>
 
 export const useSettings = () =>
   useQuery({ queryKey: queryKeys.settings, queryFn: api.getSettings });
+
+/** 开机自启以系统里的实际登记为准，不存在设置里 */
+export const useAutostart = () =>
+  useQuery({ queryKey: queryKeys.autostart, queryFn: api.getAutostart });
 
 export const useTimezones = () =>
   useQuery({ queryKey: queryKeys.timezones, queryFn: api.listTimezones, staleTime: Infinity });
@@ -93,6 +98,9 @@ function useDataMutation<TData, TVariables>(
 
 export const useUpdateSettings = () =>
   useDataMutation((patch: Partial<Settings>) => api.updateSettings(patch));
+
+export const useSetAutostart = () =>
+  useDataMutation((enabled: boolean) => api.setAutostart(enabled));
 
 export const useCreatePlan = () => useDataMutation((input: PlanInput) => api.createPlan(input));
 

@@ -68,6 +68,8 @@ pub struct Settings {
     pub toggle_hotkey: String,
     /// 关闭窗口时缩到托盘（否则直接退出）
     pub close_to_tray: bool,
+    /// 静默启动：开机自启时不显示窗口，只在托盘运行
+    pub silent_start: bool,
     /// 单次计时超过多少分钟提醒，0 表示不提醒
     pub long_session_minutes: i64,
 }
@@ -82,6 +84,7 @@ impl Default for Settings {
             timer_display: TimerDisplay::default(),
             toggle_hotkey: "Ctrl+Shift+F12".into(),
             close_to_tray: true,
+            silent_start: false,
             long_session_minutes: 180,
         }
     }
@@ -169,6 +172,27 @@ mod tests {
         assert_eq!(updated.timer_style, TimerStyle::Analog);
         assert_eq!(updated.countdown_end, CountdownEnd::Pause);
         assert_eq!(get(&conn).unwrap(), updated);
+    }
+
+    #[test]
+    fn settings_saved_by_older_versions_get_new_defaults() {
+        let conn = conn();
+        conn.execute(
+            "INSERT INTO settings (key, value) VALUES (?1, ?2)",
+            params![
+                SETTINGS_KEY,
+                r#"{"timezone":"Asia/Shanghai","closeToTray":false}"#
+            ],
+        )
+        .unwrap();
+        let settings = get(&conn).unwrap();
+        assert_eq!(settings.timezone, "Asia/Shanghai");
+        assert!(!settings.close_to_tray);
+        assert!(!settings.silent_start);
+
+        let updated = update(&conn, &json!({ "silentStart": true })).unwrap();
+        assert!(updated.silent_start);
+        assert_eq!(updated.timezone, "Asia/Shanghai");
     }
 
     #[test]

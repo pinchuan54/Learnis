@@ -228,6 +228,22 @@ pub async fn reorder_todos(db: State<'_, Db>, date: String, ids: Vec<i64>) -> Ap
     })
 }
 
+// ---------- 开机自启 ----------
+
+/// 系统里是否已登记开机自启
+#[cfg(desktop)]
+#[tauri::command]
+pub async fn get_autostart<R: Runtime>(app: AppHandle<R>) -> AppResult<bool> {
+    desktop::startup::autostart_enabled(&app)
+}
+
+/// 打开或关闭开机自启，返回系统里的实际状态
+#[cfg(desktop)]
+#[tauri::command]
+pub async fn set_autostart<R: Runtime>(app: AppHandle<R>, enabled: bool) -> AppResult<bool> {
+    desktop::startup::set_autostart(&app, enabled)
+}
+
 // ---------- 关于与更新 ----------
 
 /// 项目地址，取自 `Cargo.toml` 的 `repository`

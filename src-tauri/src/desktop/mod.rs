@@ -1,6 +1,7 @@
-//! 桌面端系统集成：托盘、全局快捷键、计时监视与系统通知、关闭到托盘、检查更新。
+//! 桌面端系统集成：托盘、全局快捷键、计时监视与系统通知、关闭到托盘、开机自启、检查更新。
 
 pub mod hotkey;
+pub mod startup;
 mod tray;
 pub mod updater;
 mod watcher;
@@ -16,6 +17,8 @@ use crate::error::AppResult;
 pub const TIMER_CHANGED_EVENT: &str = "timer-changed";
 
 pub fn setup<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
+    // 主窗口在配置里默认隐藏，先决定是否显示，避免静默启动时窗口闪一下
+    startup::show_main_window_on_launch(app);
     tray::create(app)?;
     if let Err(err) = hotkey::register_from_settings(app) {
         eprintln!("注册全局快捷键失败：{err}");

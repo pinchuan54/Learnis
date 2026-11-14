@@ -11,7 +11,7 @@ use serde::Serialize;
 use tauri::{AppHandle, Emitter, Runtime};
 use tauri_plugin_updater::{Error as UpdaterError, Update, UpdaterExt};
 
-use super::tray;
+use super::{startup, tray};
 use crate::error::{AppError, AppResult};
 
 /// 下载进度事件，载荷为 [`DownloadProgress`]
@@ -66,6 +66,10 @@ pub async fn install<R: Runtime>(app: &AppHandle<R>) -> AppResult<()> {
         )
         .await
         .map_err(|err| describe_error(Stage::Download, &err))?;
+
+    // 装完会带着原来的启动参数重新打开；如果这次是开机自启的，静默启动会让窗口不出现，
+    // 所以先留记号让更新后照常显示窗口（安装失败时记号留着也只是下次启动多显示一次窗口）
+    startup::show_window_on_next_start(app);
 
     // Windows：这里会启动安装器并直接结束进程，不会返回
     update

@@ -68,6 +68,10 @@ export const api = {
   getClock: () => call<Clock>('get_clock'),
   getSettings: () => call<Settings>('get_settings'),
   updateSettings: (patch: Partial<Settings>) => call<Settings>('update_settings', { patch }),
+  /** 系统里是否已登记开机自启 */
+  getAutostart: () => call<boolean>('get_autostart'),
+  /** 打开或关闭开机自启，返回系统里的实际状态 */
+  setAutostart: (enabled: boolean) => call<boolean>('set_autostart', { enabled }),
   listTimezones: () => call<string[]>('list_timezones'),
 
   // 计划

@@ -1,7 +1,14 @@
 import { type ReactNode, useEffect, useState } from 'react';
 import appIcon from '../../src-tauri/icons/app-icon.svg';
 import { api } from '../api/client';
-import { useClock, useSettings, useTimezones, useUpdateSettings } from '../api/hooks';
+import {
+  useAutostart,
+  useClock,
+  useSetAutostart,
+  useSettings,
+  useTimezones,
+  useUpdateSettings,
+} from '../api/hooks';
 import type {
   CountdownEnd,
   Settings,
@@ -140,7 +147,7 @@ export function SettingsPage() {
             </ul>
           </Section>
 
-          <Section title="快捷键与托盘" text="在 AE 等任何软件里都能用快捷键开始或暂停计时。">
+          <Section title="快捷键" text="在 AE 等任何软件里都能用快捷键开始或暂停计时。">
             <ul className={styles.group}>
               <SettingRow title="开始 / 暂停计时" hint="作用于最近计时的计划；点击后按下新的组合键">
                 <HotkeyField
@@ -148,18 +155,10 @@ export function SettingsPage() {
                   onSave={(toggleHotkey) => save({ toggleHotkey })}
                 />
               </SettingRow>
-              <SettingRow
-                title="关闭窗口时缩到托盘"
-                hint="关闭后计时和快捷键仍然有效，从托盘图标可以重新打开"
-              >
-                <Switch
-                  label="关闭窗口时缩到托盘"
-                  checked={settings.closeToTray}
-                  onChange={(closeToTray) => save({ closeToTray })}
-                />
-              </SettingRow>
             </ul>
           </Section>
+
+          <StartupSection settings={settings} onSave={save} />
 
           <TimezoneSection
             timezone={settings.timezone}
@@ -170,6 +169,62 @@ export function SettingsPage() {
 
       <AboutSection />
     </div>
+  );
+}
+
+/** 启动与窗口：开机自启（以系统登记为准）、静默启动、关闭到托盘 */
+function StartupSection({
+  settings,
+  onSave,
+}: {
+  settings: Settings;
+  onSave: (patch: Partial<Settings>) => void;
+}) {
+  const toast = useToast();
+  const autostart = useAutostart();
+  const setAutostart = useSetAutostart();
+  // 切换过程中先显示目标状态，避免开关来回跳
+  const autostartOn = setAutostart.isPending
+    ? (setAutostart.variables ?? false)
+    : (autostart.data ?? false);
+
+  return (
+    <Section title="启动与窗口" text="开机后自动运行，或者只在托盘里待命，随时用快捷键开始计时。">
+      <ul className={styles.group}>
+        <SettingRow
+          title="开机自启"
+          hint={autostart.isError ? '读取开机自启状态失败' : '登录系统后自动运行 Learnis'}
+        >
+          <Switch
+            label="开机自启"
+            checked={autostartOn}
+            disabled={autostart.data === undefined || setAutostart.isPending}
+            onChange={(enabled) => setAutostart.mutate(enabled, { onError: toast.error })}
+          />
+        </SettingRow>
+        <SettingRow
+          title="静默启动"
+          hint="开机自启时不打开窗口，只在托盘运行；自己打开 Learnis 时照常显示窗口"
+        >
+          <Switch
+            label="静默启动"
+            checked={settings.silentStart}
+            disabled={!autostartOn}
+            onChange={(silentStart) => onSave({ silentStart })}
+          />
+        </SettingRow>
+        <SettingRow
+          title="关闭窗口时缩到托盘"
+          hint="关闭后计时和快捷键仍然有效，从托盘图标可以重新打开"
+        >
+          <Switch
+            label="关闭窗口时缩到托盘"
+            checked={settings.closeToTray}
+            onChange={(closeToTray) => onSave({ closeToTray })}
+          />
+        </SettingRow>
+      </ul>
+    </Section>
   );
 }
 
