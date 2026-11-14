@@ -1,6 +1,6 @@
 [package]
 name = "learnis"
-version = "0.1.0"
+version = "0.1.1"
 description = "本地学习计划与计时软件"
 authors = ["pinchuan54", "Claude"]
 repository = "https://github.com/pinchuan54/Learnis"
