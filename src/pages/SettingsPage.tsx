@@ -8,13 +8,17 @@ import type {
   ShortfallDefault,
   TimerDisplay,
   TimerStyle,
+  UpdateInfo,
+  UpdateProgress,
 } from '../api/types';
-import { ArrowUpRightIcon } from '../components/icons';
+import { ArrowUpRightIcon, CheckIcon } from '../components/icons';
 import { Button } from '../components/ui/Button';
 import forms from '../components/ui/forms.module.css';
 import { SegmentedControl } from '../components/ui/SegmentedControl';
 import { Switch } from '../components/ui/Switch';
 import { useToast } from '../components/ui/toast/ToastContext';
+import { describeProgress } from '../features/update/progress';
+import { useUpdater } from '../features/update/useUpdater';
 import type { ThemePreference } from '../lib/theme';
 import { formatDisplayVersion } from '../lib/version';
 import page from '../styles/page.module.css';
@@ -171,8 +175,16 @@ export function SettingsPage() {
 
 function AboutSection() {
   const toast = useToast();
+  const { state, check, install } = useUpdater(toast.error);
+  const busy = state.phase === 'checking' || state.phase === 'installing';
+
   const openProjectPage = () => {
     api.openProjectPage().catch(toast.error);
+  };
+
+  const checkUpdate = async () => {
+    const info = await check();
+    if (info) toast.show(`发现新版本 ${formatDisplayVersion(info.version)}`);
   };
 
   return (
@@ -185,19 +197,90 @@ function AboutSection() {
               <span className={styles.appName}>Learnis</span>
               <span className={styles.settingHint}>
                 版本 {formatDisplayVersion(__APP_VERSION__)}
+                {state.phase === 'latest' && (
+                  <span className={styles.latest}>
+                    <CheckIcon />
+                    已是最新版本
+                  </span>
+                )}
               </span>
             </div>
           </div>
-          <Button onClick={openProjectPage}>
-            项目地址
-            <ArrowUpRightIcon />
-          </Button>
+          <div className={styles.appActions}>
+            <Button onClick={() => void checkUpdate()} disabled={busy}>
+              {state.phase === 'checking' ? '正在检查…' : '检查更新'}
+            </Button>
+            <Button onClick={openProjectPage}>
+              项目地址
+              <ArrowUpRightIcon />
+            </Button>
+          </div>
         </li>
+        {(state.phase === 'available' || state.phase === 'installing') && (
+          <UpdateRow
+            info={state.info}
+            installing={state.phase === 'installing'}
+            progress={state.phase === 'installing' ? state.progress : null}
+            onInstall={() => void install(state.info)}
+          />
+        )}
         <SettingRow title="贡献者">
           <span className={styles.value}>pinchuan54</span>
         </SettingRow>
       </ul>
     </Section>
+  );
+}
+
+/** 发现新版本时显示：版本号、更新说明、立即更新与下载进度 */
+function UpdateRow({
+  info,
+  installing,
+  progress,
+  onInstall,
+}: {
+  info: UpdateInfo;
+  installing: boolean;
+  progress: UpdateProgress | null;
+  onInstall: () => void;
+}) {
+  const view = describeProgress(progress);
+  return (
+    <li className={`${styles.settingRow} ${styles.updateRow}`}>
+      <div className={styles.updateText}>
+        <span className={styles.updateTitle}>
+          <span className={styles.badge}>新版本</span>
+          Learnis {formatDisplayVersion(info.version)}
+        </span>
+        <span className={styles.settingHint}>
+          更新时 Learnis 会关闭并自动重新打开，正在进行的计时不受影响
+        </span>
+        {info.notes && <p className={styles.notes}>{info.notes}</p>}
+        {installing && (
+          <div className={styles.progress}>
+            <div
+              className={styles.progressTrack}
+              role="progressbar"
+              aria-label="下载进度"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={view.ratio === null ? undefined : Math.round(view.ratio * 100)}
+            >
+              <div
+                className={view.ratio === null ? styles.progressIndeterminate : styles.progressBar}
+                style={view.ratio === null ? undefined : { width: `${view.ratio * 100}%` }}
+              />
+            </div>
+            <span className={styles.settingHint}>{view.text}</span>
+          </div>
+        )}
+      </div>
+      <div className={styles.control}>
+        <Button variant="primary" onClick={onInstall} disabled={installing}>
+          {installing ? '正在更新…' : '立即更新'}
+        </Button>
+      </div>
+    </li>
   );
 }
 

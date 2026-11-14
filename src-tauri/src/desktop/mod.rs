@@ -1,7 +1,8 @@
-//! 桌面端系统集成：托盘、全局快捷键、计时监视与系统通知、关闭到托盘。
+//! 桌面端系统集成：托盘、全局快捷键、计时监视与系统通知、关闭到托盘、检查更新。
 
 pub mod hotkey;
 mod tray;
+pub mod updater;
 mod watcher;
 
 use tauri::{AppHandle, Emitter, Manager, Runtime};

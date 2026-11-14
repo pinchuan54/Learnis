@@ -228,7 +228,7 @@ pub async fn reorder_todos(db: State<'_, Db>, date: String, ids: Vec<i64>) -> Ap
     })
 }
 
-// ---------- 关于 ----------
+// ---------- 关于与更新 ----------
 
 /// 项目地址，取自 `Cargo.toml` 的 `repository`
 const PROJECT_URL: &str = env!("CARGO_PKG_REPOSITORY");
@@ -238,6 +238,22 @@ const PROJECT_URL: &str = env!("CARGO_PKG_REPOSITORY");
 pub async fn open_project_page() -> AppResult<()> {
     open::that_detached(PROJECT_URL)
         .map_err(|err| AppError::Internal(format!("无法打开浏览器：{err}")))
+}
+
+/// 检查新版本，已是最新时返回 `null`
+#[cfg(desktop)]
+#[tauri::command]
+pub async fn check_update<R: Runtime>(
+    app: AppHandle<R>,
+) -> AppResult<Option<desktop::updater::UpdateInfo>> {
+    desktop::updater::check(&app).await
+}
+
+/// 下载并安装新版本，完成后自动重启；下载进度通过 `update-progress` 事件发出
+#[cfg(desktop)]
+#[tauri::command]
+pub async fn install_update<R: Runtime>(app: AppHandle<R>) -> AppResult<()> {
+    desktop::updater::install(&app).await
 }
 
 #[cfg(test)]

@@ -199,3 +199,19 @@ export interface Settings {
   /** 单次计时超过多少分钟提醒，0 表示不提醒 */
   longSessionMinutes: number;
 }
+
+/** 可以更新到的新版本 */
+export interface UpdateInfo {
+  /** 新版本号，如 `0.1.3` */
+  version: string;
+  currentVersion: string;
+  /** 更新说明（纯文本，可能有多行） */
+  notes: string | null;
+}
+
+/** 下载更新的进度，单位字节 */
+export interface UpdateProgress {
+  downloaded: number;
+  /** 服务器没给出文件大小时为 null */
+  total: number | null;
+}
