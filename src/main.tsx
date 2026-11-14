@@ -1,6 +1,8 @@
+import { QueryClientProvider } from '@tanstack/react-query';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
+import { queryClient } from './api/queryClient';
 import './styles/global.css';
 import { ThemeProvider } from './theme/ThemeProvider';
 
@@ -11,8 +13,10 @@ if (import.meta.env.PROD) {
 
 createRoot(document.getElementById('root') as HTMLElement).render(
   <StrictMode>
-    <ThemeProvider>
-      <App />
-    </ThemeProvider>
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider>
+        <App />
+      </ThemeProvider>
+    </QueryClientProvider>
   </StrictMode>,
 );

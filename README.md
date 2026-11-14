@@ -53,20 +53,35 @@ npm run format:check # Prettier 格式检查（npm run format 自动修复）
 npm test             # Vitest 单元测试
 npm run rust:fmt     # Rust 格式检查
 npm run rust:lint    # Clippy
+npm run rust:test    # Rust 单元测试
 ```
+
+### 架构
+
+- **Rust 端是唯一的数据来源**：SQLite 存储、计划分配、计时、调整、统计都在 `src-tauri/src/domain` 中实现并配单元测试；前端只负责界面，通过命令读写数据。
+- **时间约定**：时间点存 UTC 毫秒；「哪一天」按设置中的时区计算，日界线为该时区 0 点，跨天的学习记录自动切分。
+- **计时可靠**：只记录开始 / 结束时间戳，关闭窗口、崩溃、重启都不会丢失计时。
+- **目标 = 基础分配 − 调出 + 调入**：创建计划时均分到学习日；没学够的时长挂起，可均分、拆分或顺延；学超的部分只计入总时长。
+
+数据文件位于应用数据目录（Windows：`%APPDATA%\io.github.pinchuan54.learnis\`），正式版为 `learnis.db`，开发版为 `learnis-dev.db`，互不影响。
 
 ### 目录结构
 
 ```
 src/                 前端（React + TypeScript）
+  api/               类型化的后端调用与数据查询（TanStack Query）
   components/        通用组件（顶部导航栏、窗口按钮、图标）
   layouts/           页面外壳
   pages/             各页面
   theme/             外观（浅色 / 深色 / 跟随系统）
-  lib/               与界面无关的工具和业务逻辑（配单元测试）
+  lib/               与界面无关的工具函数（配单元测试）
   styles/            设计令牌与全局样式
 public/              静态文件（渲染前应用外观的脚本）
-src-tauri/           桌面端（Rust）：窗口、数据存储与系统能力
+src-tauri/src/       桌面端（Rust）
+  db/                SQLite 连接与表结构迁移
+  domain/            业务逻辑：计划分配、计时、调整、待办、设置、概览统计
+  commands.rs        暴露给前端的命令
+  time.rs            时区、日界线与跨天切分
 ```
 
 ## 版本
