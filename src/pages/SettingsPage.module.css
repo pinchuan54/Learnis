@@ -1,0 +1,47 @@
+/* 苹果风格的分组列表 */
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  max-width: 640px;
+}
+
+.groupTitle {
+  padding: 0 var(--space-4);
+  font-size: var(--text-footnote);
+  font-weight: 600;
+  color: var(--color-label-secondary);
+}
+
+.list {
+  margin: 0;
+  border-radius: var(--radius-lg);
+  background: var(--surface-card);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+}
+
+.row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 44px;
+  padding: var(--space-2) var(--space-4);
+}
+
+/* 行间分隔线左侧缩进 */
+.row + .row::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: var(--space-4);
+  right: 0;
+  border-top: 1px solid var(--color-separator);
+}
+
+.value {
+  margin: 0;
+  color: var(--color-label-secondary);
+}
