@@ -94,5 +94,19 @@ src-tauri/src/       桌面端（Rust）
 
 ## 贡献者
 
-- [pinchuan54](https://github.com/pinchuan54)
-- Claude（Anthropic）
+<table>
+  <tr>
+    <td align="center">
+      <a href="https://github.com/pinchuan54">
+        <img src="https://github.com/pinchuan54.png?size=160" width="80" height="80" alt="pinchuan54" /><br />
+        <sub><b>pinchuan54</b></sub>
+      </a>
+    </td>
+    <td align="center">
+      <a href="https://github.com/claude">
+        <img src="https://github.com/claude.png?size=160" width="80" height="80" alt="Claude" /><br />
+        <sub><b>Claude</b></sub>
+      </a>
+    </td>
+  </tr>
+</table>
