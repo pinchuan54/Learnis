@@ -1,4 +1,6 @@
 import { type ReactNode, useEffect, useState } from 'react';
+import appIcon from '../../src-tauri/icons/app-icon.svg';
+import { api } from '../api/client';
 import { useClock, useSettings, useTimezones, useUpdateSettings } from '../api/hooks';
 import type {
   CountdownEnd,
@@ -7,6 +9,7 @@ import type {
   TimerDisplay,
   TimerStyle,
 } from '../api/types';
+import { ArrowUpRightIcon } from '../components/icons';
 import { Button } from '../components/ui/Button';
 import forms from '../components/ui/forms.module.css';
 import { SegmentedControl } from '../components/ui/SegmentedControl';
@@ -161,19 +164,40 @@ export function SettingsPage() {
         </>
       )}
 
-      <Section title="关于">
-        <dl className={styles.list}>
-          <div className={styles.row}>
-            <dt>版本</dt>
-            <dd className={styles.value}>{formatDisplayVersion(__APP_VERSION__)}</dd>
-          </div>
-          <div className={styles.row}>
-            <dt>贡献者</dt>
-            <dd className={styles.value}>pinchuan54、Claude</dd>
-          </div>
-        </dl>
-      </Section>
+      <AboutSection />
     </div>
+  );
+}
+
+function AboutSection() {
+  const toast = useToast();
+  const openProjectPage = () => {
+    api.openProjectPage().catch(toast.error);
+  };
+
+  return (
+    <Section title="关于">
+      <ul className={styles.group}>
+        <li className={`${styles.settingRow} ${styles.appRow}`}>
+          <div className={styles.appInfo}>
+            <img className={styles.appIcon} src={appIcon} alt="" draggable={false} />
+            <div className={styles.settingText}>
+              <span className={styles.appName}>Learnis</span>
+              <span className={styles.settingHint}>
+                版本 {formatDisplayVersion(__APP_VERSION__)}
+              </span>
+            </div>
+          </div>
+          <Button onClick={openProjectPage}>
+            项目地址
+            <ArrowUpRightIcon />
+          </Button>
+        </li>
+        <SettingRow title="贡献者">
+          <span className={styles.value}>pinchuan54</span>
+        </SettingRow>
+      </ul>
+    </Section>
   );
 }
 

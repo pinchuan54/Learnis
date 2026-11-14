@@ -81,6 +81,7 @@ pub fn run() {
             commands::update_todo,
             commands::delete_todo,
             commands::reorder_todos,
+            commands::open_project_page,
         ])
         .run(tauri::generate_context!())
         .expect("启动 Learnis 失败");

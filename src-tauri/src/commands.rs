@@ -15,7 +15,7 @@ use crate::domain::model::{
 };
 use crate::domain::settings::Settings;
 use crate::domain::{Ctx, adjustments, overview, plans, sessions, settings, todos};
-use crate::error::AppResult;
+use crate::error::{AppError, AppResult};
 use crate::time::parse_date;
 
 // ---------- 时间与设置 ----------
@@ -226,4 +226,26 @@ pub async fn reorder_todos(db: State<'_, Db>, date: String, ids: Vec<i64>) -> Ap
         let ctx = Ctx::load(conn)?;
         todos::reorder(conn, &ctx, &date, &ids)
     })
+}
+
+// ---------- 关于 ----------
+
+/// 项目地址，取自 `Cargo.toml` 的 `repository`
+const PROJECT_URL: &str = env!("CARGO_PKG_REPOSITORY");
+
+/// 用系统默认浏览器打开项目地址。地址写死在后端，前端不能借此打开任意链接。
+#[tauri::command]
+pub async fn open_project_page() -> AppResult<()> {
+    open::that_detached(PROJECT_URL)
+        .map_err(|err| AppError::Internal(format!("无法打开浏览器：{err}")))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::PROJECT_URL;
+
+    #[test]
+    fn project_url_points_to_github_repository() {
+        assert_eq!(PROJECT_URL, "https://github.com/pinchuan54/Learnis");
+    }
 }

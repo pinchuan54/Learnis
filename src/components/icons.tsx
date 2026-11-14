@@ -138,6 +138,15 @@ export function ChevronRightIcon(props: IconProps) {
   );
 }
 
+/** 在浏览器中打开：右上角箭头 */
+export function ArrowUpRightIcon(props: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" {...props}>
+      <path d="M7.5 16.5l9-9M9 7.5h7.5V15" {...line} strokeWidth={2} />
+    </svg>
+  );
+}
+
 /* 窗口按钮图形，沿用 Windows 11 的线条样式 */
 
 export function MinimizeGlyph(props: IconProps) {
