@@ -17,6 +17,7 @@ import type {
   Todo,
   TodoInput,
   TodoPatch,
+  UpdateInfo,
 } from './types';
 
 export type ApiErrorCode = 'database' | 'invalid' | 'not_found' | 'conflict' | 'internal';
@@ -106,6 +107,9 @@ export const api = {
   deleteTodo: (id: number) => call<void>('delete_todo', { id }),
   reorderTodos: (date: string, ids: number[]) => call<Todo[]>('reorder_todos', { date, ids }),
 
-  // 关于
+  // 关于与更新
   openProjectPage: () => call<void>('open_project_page'),
+  checkUpdate: () => call<UpdateInfo | null>('check_update'),
+  /** 下载并安装新版本，成功后应用会自动重启，通常不会返回 */
+  installUpdate: () => call<void>('install_update'),
 };

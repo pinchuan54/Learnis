@@ -49,6 +49,13 @@ pub fn create<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
     Ok(())
 }
 
+/// 隐藏托盘图标。进程被直接结束（例如安装更新）前调用，避免残留图标。
+pub fn hide<R: Runtime>(app: &AppHandle<R>) {
+    if let Some(tray) = app.tray_by_id(TRAY_ID) {
+        let _ = tray.set_visible(false);
+    }
+}
+
 /// 更新悬停提示与「开始 / 暂停」菜单文字
 pub fn update<R: Runtime>(app: &AppHandle<R>, tooltip: &str, running: bool) {
     if let Some(tray) = app.tray_by_id(TRAY_ID) {

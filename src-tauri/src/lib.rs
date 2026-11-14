@@ -32,6 +32,8 @@ pub fn run() {
             desktop::show_main_window(app);
         }))
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
+        // 检查更新只由后端命令调用，前端不直接使用插件，所以不需要额外权限
+        .plugin(tauri_plugin_updater::Builder::new().build())
         // 设置为「关闭到托盘」时，关闭窗口只是隐藏
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::CloseRequested { api, .. } = event
@@ -82,6 +84,10 @@ pub fn run() {
             commands::delete_todo,
             commands::reorder_todos,
             commands::open_project_page,
+            #[cfg(desktop)]
+            commands::check_update,
+            #[cfg(desktop)]
+            commands::install_update,
         ])
         .run(tauri::generate_context!())
         .expect("启动 Learnis 失败");
