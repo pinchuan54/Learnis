@@ -105,4 +105,7 @@ export const api = {
   updateTodo: (id: number, patch: TodoPatch) => call<Todo>('update_todo', { id, patch }),
   deleteTodo: (id: number) => call<void>('delete_todo', { id }),
   reorderTodos: (date: string, ids: number[]) => call<Todo[]>('reorder_todos', { date, ids }),
+
+  // 关于
+  openProjectPage: () => call<void>('open_project_page'),
 };

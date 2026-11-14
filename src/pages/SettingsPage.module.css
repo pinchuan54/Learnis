@@ -148,33 +148,37 @@
 
 /* ---------- 关于 ---------- */
 
-.list {
-  max-width: 680px;
-  border-radius: var(--radius-lg);
-  background: var(--color-bg-elevated);
-  overflow: hidden;
+.appRow {
+  padding-block: var(--space-5);
 }
 
-.row {
-  position: relative;
+.appInfo {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  min-height: 52px;
-  padding: var(--space-3) var(--space-5);
-  font-size: var(--text-callout);
+  gap: var(--space-4);
+  min-width: 0;
 }
 
-.row + .row::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: var(--space-5);
-  right: 0;
-  border-top: 1px solid var(--color-separator);
+/* 图标源文件四周各留了 1/16 的空白：按 64px 显示，再用负外边距抵掉，可见部分 56px 并与文字对齐 */
+.appIcon {
+  flex: none;
+  width: 64px;
+  height: 64px;
+  margin: calc(var(--space-1) * -1);
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.appName {
+  font-family: var(--font-display);
+  font-size: var(--text-subhead);
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
 }
 
 .value {
+  font-size: var(--text-callout);
   color: var(--color-text-secondary);
 }
 
