@@ -69,17 +69,21 @@ npm run rust:test    # Rust 单元测试
 
 ```
 src/                 前端（React + TypeScript）
-  api/               类型化的后端调用与数据查询（TanStack Query）
+  api/               类型化的后端调用、数据查询（TanStack Query）与后台事件同步
   components/        通用组件（顶部导航栏、窗口按钮、图标）
+    ui/              基础控件（按钮、面板、分段控件、开关、小日历、进度环、提示条）
+  features/          功能模块：计划、月历、计时器、日详情、未达标调整
+  hooks/             通用 React 钩子
   layouts/           页面外壳
-  pages/             各页面
+  pages/             各页面（今天 / 某天、月历、计划、设置）
   theme/             外观（浅色 / 深色 / 跟随系统）
   lib/               与界面无关的工具函数（配单元测试）
-  styles/            设计令牌与全局样式
+  styles/            设计令牌、配色与通用区块样式
 public/              静态文件（渲染前应用外观的脚本）
 src-tauri/src/       桌面端（Rust）
   db/                SQLite 连接与表结构迁移
   domain/            业务逻辑：计划分配、计时、调整、待办、设置、概览统计
+  desktop/           托盘、全局快捷键、计时监视（自动暂停、长时间提醒）与系统通知
   commands.rs        暴露给前端的命令
   time.rs            时区、日界线与跨天切分
 ```

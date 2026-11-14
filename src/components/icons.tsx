@@ -2,6 +2,13 @@ import type { SVGProps } from 'react';
 
 type IconProps = SVGProps<SVGSVGElement>;
 
+const line = {
+  stroke: 'currentColor',
+  strokeWidth: 1.6,
+  strokeLinecap: 'round',
+  strokeLinejoin: 'round',
+} as const;
+
 /** 应用标志：一个未闭合的进度环 */
 export function LogoMark(props: IconProps) {
   return (
@@ -17,45 +24,11 @@ export function LogoMark(props: IconProps) {
   );
 }
 
-/** 大号进度环，用于空状态等展示位 */
-export function ProgressRing({
-  progress,
-  ...props
-}: IconProps & { /** 0 ~ 1 */ progress: number }) {
-  const radius = 42;
-  const circumference = 2 * Math.PI * radius;
-  const clamped = Math.min(Math.max(progress, 0), 1);
-  return (
-    <svg viewBox="0 0 100 100" fill="none" aria-hidden="true" {...props}>
-      <circle cx="50" cy="50" r={radius} stroke="var(--color-fill)" strokeWidth="12" />
-      <circle
-        cx="50"
-        cy="50"
-        r={radius}
-        stroke="var(--color-accent)"
-        strokeWidth="12"
-        strokeLinecap="round"
-        strokeDasharray={`${circumference * clamped} ${circumference}`}
-        transform="rotate(-90 50 50)"
-      />
-    </svg>
-  );
-}
-
 export function CalendarIcon(props: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" {...props}>
-      <rect
-        x="3.5"
-        y="5"
-        width="17"
-        height="15.5"
-        rx="3.5"
-        stroke="currentColor"
-        strokeWidth="1.6"
-      />
-      <path d="M3.5 9.5h17" stroke="currentColor" strokeWidth="1.6" />
-      <path d="M8 3v4M16 3v4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <rect x="3.5" y="5" width="17" height="15.5" rx="3.5" {...line} />
+      <path d="M3.5 9.5h17M8 3v4M16 3v4" {...line} />
       <circle cx="8.5" cy="13.5" r="1.1" fill="currentColor" />
       <circle cx="12" cy="13.5" r="1.1" fill="currentColor" />
       <circle cx="15.5" cy="13.5" r="1.1" fill="currentColor" />
@@ -68,15 +41,8 @@ export function CalendarIcon(props: IconProps) {
 export function StopwatchIcon(props: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" {...props}>
-      <circle cx="12" cy="13.5" r="7.5" stroke="currentColor" strokeWidth="1.6" />
-      <path
-        d="M10 2.75h4M12 2.75V6"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-      />
-      <path d="M18.5 6.5l1.5-1.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-      <path d="M12 13.5V9.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      <circle cx="12" cy="13.5" r="7.5" {...line} />
+      <path d="M10 2.75h4M12 2.75V6M18.5 6.5l1.5-1.5M12 13.5V9.5" {...line} />
       <circle cx="12" cy="13.5" r="1.3" fill="currentColor" />
     </svg>
   );
@@ -85,20 +51,89 @@ export function StopwatchIcon(props: IconProps) {
 export function AdjustIcon(props: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" {...props}>
+      <path d="M4 7.5h11.5M4 16.5h12M17 4.5l3 3-3 3M13 13.5l3 3-3 3" {...line} />
+    </svg>
+  );
+}
+
+export function PlusIcon(props: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" {...props}>
+      <path d="M12 5v14M5 12h14" {...line} strokeWidth={2} />
+    </svg>
+  );
+}
+
+export function PlayIcon(props: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" {...props}>
       <path
-        d="M4 7.5h11.5M4 16.5h6"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
+        d="M8 5.5v13a1 1 0 0 0 1.5.86l10.6-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"
+        fill="currentColor"
       />
+    </svg>
+  );
+}
+
+export function PauseIcon(props: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" {...props}>
+      <rect x="6.5" y="5" width="4" height="14" rx="1.2" fill="currentColor" />
+      <rect x="13.5" y="5" width="4" height="14" rx="1.2" fill="currentColor" />
+    </svg>
+  );
+}
+
+export function TrashIcon(props: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" {...props}>
       <path
-        d="M17 4.5l3 3-3 3M13 13.5l3 3-3 3"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
+        d="M4.5 7h15M10 4h4M6.5 7l.8 11.2A2 2 0 0 0 9.3 20h5.4a2 2 0 0 0 2-1.8L17.5 7"
+        {...line}
       />
-      <path d="M10 16.5h6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+export function PencilIcon(props: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" {...props}>
+      <path
+        d="M14.5 5.5l4 4M4.5 19.5l1-4.5L15.8 4.7a1.4 1.4 0 0 1 2 0l1.5 1.5a1.4 1.4 0 0 1 0 2L9 18.5z"
+        {...line}
+      />
+    </svg>
+  );
+}
+
+export function CheckIcon(props: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" {...props}>
+      <path d="M5 12.5l4.5 4.5L19 7.5" {...line} strokeWidth={2.2} />
+    </svg>
+  );
+}
+
+export function UndoIcon(props: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" {...props}>
+      <path d="M9 7L4.5 11.5 9 16M5 11.5h9.5a5 5 0 0 1 0 10H12" {...line} />
+    </svg>
+  );
+}
+
+export function ChevronLeftIcon(props: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" {...props}>
+      <path d="M15 5l-7 7 7 7" {...line} strokeWidth={2} />
+    </svg>
+  );
+}
+
+export function ChevronRightIcon(props: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" {...props}>
+      <path d="M9 5l7 7-7 7" {...line} strokeWidth={2} />
     </svg>
   );
 }

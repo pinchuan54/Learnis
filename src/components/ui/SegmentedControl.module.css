@@ -1,0 +1,45 @@
+.control {
+  display: inline-flex;
+  padding: 2px;
+  border-radius: 10px;
+  background: var(--color-fill);
+}
+
+.block {
+  display: flex;
+  width: 100%;
+}
+
+.segment {
+  flex: 1;
+  padding: 0 var(--space-4);
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--color-text);
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color var(--duration-fast) var(--ease-standard),
+    box-shadow var(--duration-fast) var(--ease-standard);
+}
+
+.segment:hover:not(.selected) {
+  background: var(--color-fill-hover);
+}
+
+.selected {
+  background: var(--control-thumb);
+  box-shadow: var(--control-thumb-shadow);
+  font-weight: 600;
+}
+
+.sm .segment {
+  height: 26px;
+  font-size: var(--text-footnote);
+}
+
+.md .segment {
+  height: 32px;
+  font-size: var(--text-body);
+}

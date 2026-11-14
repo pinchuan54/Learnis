@@ -4,11 +4,14 @@
 //! - `time`：时区、日界线与跨天切分
 //! - `domain`：计划分配、计时、调整、待办、设置等业务逻辑（与界面无关，配单元测试）
 //! - `commands`：暴露给前端的命令
+//! - `desktop`：托盘、全局快捷键、计时监视与通知（仅桌面端）
 //!
-//! 平台差异用 `cfg(target_os = ...)` 隔离，便于以后移植到 macOS / Linux。
+//! 平台差异用 `cfg(desktop)` / `cfg(target_os = ...)` 隔离，便于以后移植到 macOS / Linux。
 
 mod commands;
 mod db;
+#[cfg(desktop)]
+mod desktop;
 mod domain;
 mod error;
 mod time;
@@ -20,10 +23,33 @@ use crate::domain::{Ctx, adjustments, settings};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
+    let builder = tauri::Builder::default();
+
+    // 单实例必须最先注册：重复打开时直接唤起已有窗口
+    #[cfg(desktop)]
+    let builder = builder
+        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+            desktop::show_main_window(app);
+        }))
+        .plugin(tauri_plugin_global_shortcut::Builder::new().build())
+        // 设置为「关闭到托盘」时，关闭窗口只是隐藏
+        .on_window_event(|window, event| {
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event
+                && window.label() == "main"
+                && desktop::close_to_tray(window.app_handle())
+            {
+                api.prevent_close();
+                let _ = window.hide();
+            }
+        });
+
+    builder
+        .plugin(tauri_plugin_notification::init())
         .setup(|app| {
             let db = open_database(app.handle())?;
             app.manage(db);
+            #[cfg(desktop)]
+            desktop::setup(app.handle())?;
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![

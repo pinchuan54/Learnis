@@ -44,11 +44,26 @@ export const usePlans = (includeArchived = false) =>
     queryFn: () => api.listPlans(includeArchived),
   });
 
-export const useMonth = (year: number, month: number) =>
-  useQuery({ queryKey: queryKeys.month(year, month), queryFn: () => api.getMonth(year, month) });
+export const useMonth = (year: number, month: number, enabled = true) =>
+  useQuery({
+    queryKey: queryKeys.month(year, month),
+    queryFn: () => api.getMonth(year, month),
+    enabled,
+    placeholderData: (previous) => previous,
+  });
 
-export const useDay = (date: string) =>
-  useQuery({ queryKey: queryKeys.day(date), queryFn: () => api.getDay(date) });
+export const useDay = (date: string | null) =>
+  useQuery({
+    queryKey: queryKeys.day(date ?? ''),
+    queryFn: () => api.getDay(date ?? ''),
+    enabled: date !== null,
+  });
+
+export const useMovableMinutes = (planId: number, date: string) =>
+  useQuery({
+    queryKey: ['movable', planId, date],
+    queryFn: () => api.getMovableMinutes(planId, date),
+  });
 
 export const useTimerStatus = () =>
   useQuery({ queryKey: queryKeys.timer, queryFn: api.getTimerStatus });

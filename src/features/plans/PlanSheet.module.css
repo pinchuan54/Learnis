@@ -1,0 +1,89 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.weekdays {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.weekday {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 1px solid var(--input-border);
+  border-radius: 50%;
+  background: var(--input-bg);
+  color: var(--color-text-secondary);
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background-color var(--duration-fast) var(--ease-standard),
+    color var(--duration-fast) var(--ease-standard);
+}
+
+.weekdayOn {
+  border-color: var(--color-accent);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+}
+
+.colors {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.swatch {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: box-shadow var(--duration-fast) var(--ease-standard);
+}
+
+.swatch[aria-checked='true'] {
+  box-shadow:
+    0 0 0 2px var(--color-bg-elevated),
+    0 0 0 4px var(--color-text-secondary);
+}
+
+.note {
+  font-size: var(--text-footnote);
+  color: var(--color-text-secondary);
+}
+
+/* 吸附在面板底部（抵消面板内容区的底部内边距） */
+.footer {
+  position: sticky;
+  bottom: calc(var(--space-6) * -1);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin: 0 calc(var(--space-6) * -1) calc(var(--space-6) * -1);
+  padding: var(--space-4) var(--space-6) var(--space-6);
+  border-top: 1px solid var(--color-separator);
+  background: var(--color-bg-elevated);
+}
+
+.preview {
+  font-size: var(--text-body);
+  font-weight: 600;
+  color: var(--color-link);
+}
+
+.previewError {
+  font-size: var(--text-body);
+  color: var(--color-danger);
+}
+
+.actions {
+  display: flex;
+  flex: none;
+  gap: var(--space-3);
+}

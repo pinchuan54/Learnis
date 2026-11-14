@@ -3,6 +3,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
 import { queryClient } from './api/queryClient';
+import { ToastProvider } from './components/ui/toast/ToastProvider';
 import './styles/global.css';
 import { ThemeProvider } from './theme/ThemeProvider';
 
@@ -15,7 +16,9 @@ createRoot(document.getElementById('root') as HTMLElement).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
-        <App />
+        <ToastProvider>
+          <App />
+        </ToastProvider>
       </ThemeProvider>
     </QueryClientProvider>
   </StrictMode>,

@@ -3,9 +3,11 @@
 //! 命令均为 async，在后台线程执行，不阻塞界面。
 
 use serde_json::Value;
-use tauri::State;
+use tauri::{AppHandle, Runtime, State};
 
 use crate::db::Db;
+#[cfg(desktop)]
+use crate::desktop;
 use crate::domain::model::{
     AdjustRequest, Adjustment, AllocationPreview, Clock, DayDetail, MonthOverview,
     PendingShortfall, Plan, PlanInput, PlanSummary, Session, SessionInput, TimerStatus, Todo,
@@ -28,9 +30,38 @@ pub async fn get_settings(db: State<'_, Db>) -> AppResult<Settings> {
     db.with(|conn| settings::get(conn))
 }
 
+/// 更新设置。修改快捷键时先尝试注册，注册失败（格式错误或被占用）则不保存并恢复原快捷键。
 #[tauri::command]
-pub async fn update_settings(db: State<'_, Db>, patch: Value) -> AppResult<Settings> {
-    db.with(|conn| settings::update(conn, &patch))
+pub async fn update_settings<R: Runtime>(
+    app: AppHandle<R>,
+    db: State<'_, Db>,
+    patch: Value,
+) -> AppResult<Settings> {
+    let new_hotkey = patch
+        .get("toggleHotkey")
+        .and_then(Value::as_str)
+        .map(str::to_owned);
+    let previous = db.with(|conn| settings::get(conn))?.toggle_hotkey;
+    let hotkey_changed = new_hotkey
+        .as_ref()
+        .is_some_and(|hotkey| *hotkey != previous);
+
+    #[cfg(desktop)]
+    if let (true, Some(hotkey)) = (hotkey_changed, &new_hotkey)
+        && let Err(err) = desktop::hotkey::register(&app, hotkey)
+    {
+        let _ = desktop::hotkey::register(&app, &previous);
+        return Err(err);
+    }
+
+    let saved = db.with(|conn| settings::update(conn, &patch));
+    #[cfg(desktop)]
+    if saved.is_err() && hotkey_changed {
+        let _ = desktop::hotkey::register(&app, &previous);
+    }
+    #[cfg(not(desktop))]
+    let _ = (&app, hotkey_changed);
+    saved
 }
 
 /// 可选的 IANA 时区列表

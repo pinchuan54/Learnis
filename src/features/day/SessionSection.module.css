@@ -1,0 +1,13 @@
+.duration {
+  margin-left: var(--space-3);
+  font-size: var(--text-body);
+  font-weight: 400;
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--space-2);
+}

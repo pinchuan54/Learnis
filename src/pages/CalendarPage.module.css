@@ -9,8 +9,6 @@
 }
 
 .ring {
-  width: 112px;
-  height: 112px;
   margin-bottom: var(--space-8);
 }
 
@@ -19,7 +17,6 @@
   font-size: var(--text-title2);
   font-weight: 700;
   line-height: 1.125;
-  letter-spacing: -0.005em;
 }
 
 .heroText {
@@ -29,46 +26,29 @@
   color: var(--color-text-secondary);
 }
 
-.features {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--space-5);
+.heroButton {
+  margin-top: var(--space-8);
+}
+
+.legend {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-6);
   margin: var(--space-5) 0 0;
   padding: 0;
   list-style: none;
-}
-
-.feature {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  padding: var(--space-8) var(--space-8) var(--space-10);
-  border-radius: var(--radius-xl);
-  background: var(--color-bg-elevated);
-}
-
-.featureIcon {
-  display: grid;
-  width: 32px;
-  height: 32px;
-  margin-bottom: var(--space-3);
-  color: var(--color-accent);
-}
-
-.featureIcon svg {
-  width: 32px;
-  height: 32px;
-}
-
-.featureTitle {
-  font-family: var(--font-display);
-  font-size: var(--text-subhead);
-  font-weight: 700;
-  line-height: 1.2;
-}
-
-.featureText {
-  font-size: var(--text-body);
-  line-height: 1.6;
+  font-size: var(--text-footnote);
   color: var(--color-text-secondary);
+}
+
+.legend li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.legendDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
 }
