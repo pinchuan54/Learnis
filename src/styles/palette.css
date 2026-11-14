@@ -1,0 +1,65 @@
+/*
+ * 计划颜色与学习状态色（苹果系统色），浅色 / 深色各一套。
+ * 计划颜色名与 Rust 端 plans::COLORS 一致。
+ */
+
+:root {
+  --plan-blue: #007aff;
+  --plan-purple: #af52de;
+  --plan-pink: #ff2d55;
+  --plan-red: #ff3b30;
+  --plan-orange: #ff9500;
+  --plan-yellow: #ffcc00;
+  --plan-green: #34c759;
+  --plan-teal: #30b0c7;
+  --plan-gray: #8e8e93;
+
+  /* 学习状态 */
+  --status-done: #34c759;
+  --status-progress: #007aff;
+  --status-missed: #ff3b30;
+  --status-adjusted: #af52de;
+  /* 超出目标的额外学习 */
+  --status-overtime: #ff9500;
+}
+
+:root[data-theme='dark'] {
+  --plan-blue: #0a84ff;
+  --plan-purple: #bf5af2;
+  --plan-pink: #ff375f;
+  --plan-red: #ff453a;
+  --plan-orange: #ff9f0a;
+  --plan-yellow: #ffd60a;
+  --plan-green: #30d158;
+  --plan-teal: #40c8e0;
+  --plan-gray: #98989d;
+
+  --status-done: #30d158;
+  --status-progress: #0a84ff;
+  --status-missed: #ff453a;
+  --status-adjusted: #bf5af2;
+  --status-overtime: #ff9f0a;
+}
+
+/* 控件 */
+:root {
+  --control-thumb: #ffffff;
+  --control-thumb-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 0 0 0.5px rgba(0, 0, 0, 0.04);
+  --input-bg: #ffffff;
+  --input-border: #d2d2d7;
+  --switch-on: #34c759;
+  --focus-ring: rgba(0, 113, 227, 0.3);
+  --backdrop: rgba(0, 0, 0, 0.32);
+  --sheet-shadow: 0 24px 64px rgba(0, 0, 0, 0.18), 0 0 0 0.5px rgba(0, 0, 0, 0.06);
+}
+
+:root[data-theme='dark'] {
+  --control-thumb: #636366;
+  --control-thumb-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --input-bg: #2c2c2e;
+  --input-border: #424245;
+  --switch-on: #30d158;
+  --focus-ring: rgba(41, 151, 255, 0.4);
+  --backdrop: rgba(0, 0, 0, 0.55);
+  --sheet-shadow: 0 24px 64px rgba(0, 0, 0, 0.6), 0 0 0 0.5px rgba(255, 255, 255, 0.08);
+}

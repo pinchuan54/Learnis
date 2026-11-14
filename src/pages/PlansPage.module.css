@@ -1,0 +1,18 @@
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+  gap: var(--space-5);
+}
+
+.archived {
+  margin-top: var(--space-14);
+}
+
+.emptyButton {
+  margin-top: var(--space-4);
+}
+
+.dangerButton,
+.dangerButton:hover:not(:disabled) {
+  background: var(--color-danger);
+}

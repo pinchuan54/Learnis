@@ -13,6 +13,29 @@
   margin-bottom: var(--space-12);
 }
 
+/* 标题区右侧带操作按钮（放在 .header 之后，同优先级时覆盖它的排列方向） */
+.headerWithActions {
+  flex-direction: row;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-6);
+}
+
+.headerText {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.headerActions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--space-2);
+  padding-bottom: var(--space-1);
+}
+
 .eyebrow {
   font-family: var(--font-display);
   font-size: var(--text-callout);

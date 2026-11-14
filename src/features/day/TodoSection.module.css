@@ -1,0 +1,79 @@
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.row {
+  min-height: 52px;
+}
+
+.check {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  flex: none;
+  padding: 0;
+  border: 1.6px solid var(--color-text-tertiary);
+  border-radius: 50%;
+  background: transparent;
+  color: #ffffff;
+  cursor: pointer;
+  transition:
+    background-color var(--duration-fast) var(--ease-standard),
+    border-color var(--duration-fast) var(--ease-standard);
+}
+
+.check svg {
+  width: 14px;
+  height: 14px;
+}
+
+.checked {
+  border-color: var(--color-accent);
+  background: var(--color-accent);
+}
+
+.title {
+  font-size: var(--text-callout);
+  overflow-wrap: anywhere;
+}
+
+.done {
+  color: var(--color-text-tertiary);
+  text-decoration: line-through;
+}
+
+.plan {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--text-caption);
+  color: var(--color-text-secondary);
+}
+
+.plan span:first-child {
+  width: 6px;
+  height: 6px;
+}
+
+.delete {
+  opacity: 0;
+  transition: opacity var(--duration-fast) var(--ease-standard);
+}
+
+.row:hover .delete,
+.delete:focus-visible {
+  opacity: 1;
+}
+
+.add {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.planSelect {
+  width: 180px;
+  flex: none;
+}

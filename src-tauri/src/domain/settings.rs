@@ -80,7 +80,7 @@ impl Default for Settings {
             countdown_end: CountdownEnd::default(),
             timer_style: TimerStyle::default(),
             timer_display: TimerDisplay::default(),
-            toggle_hotkey: "Ctrl+Alt+Shift+L".into(),
+            toggle_hotkey: "Ctrl+Shift+F12".into(),
             close_to_tray: true,
             long_session_minutes: 180,
         }

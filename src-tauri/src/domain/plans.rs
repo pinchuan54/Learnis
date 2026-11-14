@@ -277,6 +277,25 @@ pub fn set_archived(conn: &Connection, ctx: &Ctx, id: i64, archived: bool) -> Ap
     get(conn, id)
 }
 
+/// 最近计时过的未归档计划；从未计时则取第一个未归档计划（快捷键 / 托盘开始计时用）
+pub fn last_used(conn: &Connection) -> AppResult<Option<Plan>> {
+    let recent = conn
+        .query_row(
+            &format!(
+                "{SELECT_PLAN} WHERE archived = 0 AND id = (
+                    SELECT s.plan_id FROM sessions s JOIN plans p ON p.id = s.plan_id
+                    WHERE p.archived = 0 ORDER BY s.start_at DESC LIMIT 1)"
+            ),
+            [],
+            map_plan,
+        )
+        .optional()?;
+    match recent {
+        Some(plan) => Ok(Some(plan)),
+        None => Ok(list(conn, false)?.into_iter().next()),
+    }
+}
+
 /// 删除计划及其全部分配、调整和学习记录
 pub fn delete(conn: &Connection, id: i64) -> AppResult<()> {
     let changed = conn.execute("DELETE FROM plans WHERE id = ?1", [id])?;
@@ -408,5 +427,31 @@ mod tests {
         delete(&conn, plan.id).unwrap();
         assert!(base_allocation(&conn, plan.id).is_empty());
         assert!(matches!(get(&conn, plan.id), Err(AppError::NotFound(_))));
+    }
+
+    #[test]
+    fn last_used_prefers_most_recent_session() {
+        let mut conn = conn();
+        let ctx = ctx_at("2026-11-01", 9);
+        assert!(last_used(&conn).unwrap().is_none());
+        let first = create(
+            &mut conn,
+            &ctx,
+            &sample_input(600, "2026-11-01", "2026-11-10"),
+        )
+        .unwrap();
+        let second = create(
+            &mut conn,
+            &ctx,
+            &sample_input(600, "2026-11-02", "2026-11-10"),
+        )
+        .unwrap();
+        // 没有计时记录时取第一个计划
+        assert_eq!(last_used(&conn).unwrap().unwrap().id, first.id);
+        crate::domain::sessions::start(&conn, &ctx, second.id).unwrap();
+        assert_eq!(last_used(&conn).unwrap().unwrap().id, second.id);
+        // 归档后不再选它
+        set_archived(&conn, &ctx, second.id, true).unwrap();
+        assert_eq!(last_used(&conn).unwrap().unwrap().id, first.id);
     }
 }

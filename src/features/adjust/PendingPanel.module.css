@@ -1,0 +1,31 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin-bottom: var(--space-8);
+  padding: var(--space-6);
+  border-radius: var(--radius-xl);
+  background: color-mix(in srgb, var(--status-missed) 7%, var(--color-bg-elevated));
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.title {
+  font-family: var(--font-display);
+  font-size: var(--text-subhead);
+  font-weight: 700;
+}
+
+.subtitle {
+  margin-top: var(--space-1);
+  color: var(--color-text-secondary);
+}
+
+.more {
+  align-self: center;
+}

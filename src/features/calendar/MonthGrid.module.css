@@ -1,0 +1,107 @@
+.grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: var(--space-2);
+  padding: var(--space-5);
+  border-radius: var(--radius-xl);
+  background: var(--color-bg-elevated);
+}
+
+.weekday {
+  padding-bottom: var(--space-2);
+  font-size: var(--text-footnote);
+  font-weight: 600;
+  text-align: center;
+  color: var(--color-text-secondary);
+}
+
+.weekend {
+  color: var(--color-text-tertiary);
+}
+
+.cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: 92px;
+  padding: var(--space-2) var(--space-1) var(--space-2);
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  cursor: pointer;
+  transition: background-color var(--duration-fast) var(--ease-standard);
+}
+
+button.cell:hover {
+  background: var(--color-fill-hover);
+}
+
+.outside {
+  cursor: default;
+  opacity: 0.35;
+}
+
+.top {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.number {
+  display: grid;
+  place-items: center;
+  min-width: 26px;
+  height: 26px;
+  border-radius: var(--radius-pill);
+  font-size: var(--text-body);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.today .number {
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  font-weight: 700;
+}
+
+.rest .number {
+  color: var(--color-text-tertiary);
+}
+
+.today.rest .number {
+  color: var(--color-on-accent);
+}
+
+.adjusted {
+  position: absolute;
+  top: 0;
+  left: calc(50% + 14px);
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--status-adjusted);
+}
+
+.ring {
+  margin-top: 2px;
+}
+
+.amount {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
+.missed .amount {
+  color: var(--status-missed);
+}
+
+.done .amount {
+  color: var(--status-done);
+}

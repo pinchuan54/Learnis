@@ -1,0 +1,53 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.split {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  background: var(--color-fill-hover);
+}
+
+.splitRow {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.splitIndex {
+  font-size: var(--text-footnote);
+  font-weight: 700;
+  color: var(--color-text-tertiary);
+  text-align: center;
+}
+
+.splitFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.sumOk {
+  font-size: var(--text-footnote);
+  font-weight: 600;
+  color: var(--status-done);
+}
+
+.sumBad {
+  font-size: var(--text-footnote);
+  font-weight: 600;
+  color: var(--color-danger);
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+}
