@@ -13,32 +13,24 @@ body,
   margin: 0;
 }
 
-html {
-  color-scheme: light dark;
-}
-
 body {
   font-family: var(--font-sans);
   font-size: var(--text-body);
-  line-height: 1.5;
-  color: var(--color-label);
-  /* Tauri 下窗口底层是 Mica，网页本身保持透明 */
-  background: transparent;
+  line-height: 1.47;
+  color: var(--color-text);
+  background: var(--color-bg);
   overflow: hidden;
   cursor: default;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
 
-/* 浏览器预览时没有 Mica，用纯色代替 */
-html[data-platform='web'] body {
-  background: var(--surface-fallback);
-}
-
 h1,
 h2,
 h3,
-p {
+p,
+dl,
+dd {
   margin: 0;
 }
 
@@ -50,6 +42,27 @@ button {
 :focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: 2px;
+}
+
+/* 细滚动条，接近 macOS 的叠加样式 */
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  border: 3px solid transparent;
+  border-radius: var(--radius-pill);
+  background: var(--scrollbar-thumb);
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--scrollbar-thumb-hover);
 }
 
 @media (prefers-reduced-motion: reduce) {

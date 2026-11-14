@@ -1,19 +1,6 @@
+/* 整个窗口作为滚动容器，导航栏用 sticky 固定在顶部 */
 .shell {
-  display: grid;
-  grid-template-areas:
-    'titlebar titlebar'
-    'sidebar content';
-  grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
-  grid-template-rows: var(--titlebar-height) minmax(0, 1fr);
   height: 100%;
-}
-
-/* 内容区叠在 Mica 之上，左上角圆角，与侧栏形成层次 */
-.content {
-  grid-area: content;
-  overflow: auto;
-  background: var(--surface-content);
-  border-top: 1px solid var(--color-separator);
-  border-left: 1px solid var(--color-separator);
-  border-top-left-radius: var(--radius-lg);
+  overflow-x: hidden;
+  overflow-y: auto;
 }

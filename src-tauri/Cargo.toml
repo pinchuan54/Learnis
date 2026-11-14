@@ -5,7 +5,7 @@ description = "本地学习计划与计时软件"
 authors = ["pinchuan54", "Claude"]
 repository = "https://github.com/pinchuan54/Learnis"
 edition = "2024"
-rust-version = "1.85"
+rust-version = "1.90"
 publish = false
 
 [lib]

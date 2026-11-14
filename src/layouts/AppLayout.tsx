@@ -1,15 +1,13 @@
 import { Outlet } from 'react-router';
-import { Sidebar } from '../components/Sidebar';
-import { TitleBar } from '../components/TitleBar';
+import { GlobalNav } from '../components/GlobalNav';
 import styles from './AppLayout.module.css';
 
-/** 应用外壳：顶部标题栏 + 左侧导航 + 右侧内容区 */
+/** 应用外壳：顶部导航栏 + 滚动内容区（内容从导航栏下方透出） */
 export function AppLayout() {
   return (
     <div className={styles.shell}>
-      <TitleBar />
-      <Sidebar />
-      <main className={styles.content}>
+      <GlobalNav />
+      <main>
         <Outlet />
       </main>
     </div>

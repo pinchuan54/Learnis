@@ -29,7 +29,7 @@
 ### 环境要求
 
 - [Node.js](https://nodejs.org/) 20.19 及以上
-- [Rust](https://www.rust-lang.org/tools/install) 稳定版（1.85 及以上）
+- [Rust](https://www.rust-lang.org/tools/install) 稳定版（1.90 及以上）
 - Windows：Microsoft C++ 生成工具（勾选「使用 C++ 的桌面开发」）与 WebView2 运行时（Windows 11 已自带）
 
 详见 [Tauri 环境准备](https://tauri.app/start/prerequisites/)。
@@ -39,7 +39,7 @@
 ```bash
 npm install          # 安装依赖
 npm run tauri dev    # 启动桌面应用（开发模式，支持热更新）
-npm run dev          # 只在浏览器中预览界面（无 Mica 效果和窗口功能）
+npm run dev          # 只在浏览器中预览界面（没有窗口按钮）
 npm run tauri build  # 构建安装包
 ```
 
@@ -59,11 +59,13 @@ npm run rust:lint    # Clippy
 
 ```
 src/                 前端（React + TypeScript）
-  components/        通用组件（标题栏、侧栏、图标）
+  components/        通用组件（顶部导航栏、窗口按钮、图标）
   layouts/           页面外壳
   pages/             各页面
+  theme/             外观（浅色 / 深色 / 跟随系统）
   lib/               与界面无关的工具和业务逻辑（配单元测试）
   styles/            设计令牌与全局样式
+public/              静态文件（渲染前应用外观的脚本）
 src-tauri/           桌面端（Rust）：窗口、数据存储与系统能力
 ```
 

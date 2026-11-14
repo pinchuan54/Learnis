@@ -1,28 +1,36 @@
-/* 各页面共用的版式 */
+/* 各页面共用的版式：980px 居中、大标题、大留白 */
 
 .page {
-  max-width: 1080px;
+  max-width: calc(var(--content-width) + 2 * var(--space-10));
   margin: 0 auto;
-  padding: var(--space-8) var(--space-10) var(--space-10);
+  padding: var(--space-14) var(--space-10) var(--space-20);
 }
 
 .header {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
-  margin-bottom: var(--space-6);
+  gap: var(--space-2);
+  margin-bottom: var(--space-12);
 }
 
 .eyebrow {
-  font-size: var(--text-footnote);
+  font-family: var(--font-display);
+  font-size: var(--text-callout);
   font-weight: 600;
-  color: var(--color-label-secondary);
+  color: var(--color-text-secondary);
 }
 
 .title {
   font-family: var(--font-display);
   font-size: var(--text-title1);
   font-weight: 700;
-  line-height: 1.2;
+  line-height: 1.08;
   letter-spacing: -0.01em;
+}
+
+.subtitle {
+  font-family: var(--font-display);
+  font-size: var(--text-subhead);
+  line-height: 1.38;
+  color: var(--color-text-secondary);
 }
