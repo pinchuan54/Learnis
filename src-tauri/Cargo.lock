@@ -2134,6 +2134,7 @@ dependencies = [
  "notify-rust",
  "open",
  "rusqlite",
+ "semver",
  "serde",
  "serde_json",
  "tauri",

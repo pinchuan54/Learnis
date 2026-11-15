@@ -46,6 +46,10 @@ tauri-plugin-global-shortcut = "2.4.1"
 tauri-plugin-single-instance = "2.5.5"
 tauri-plugin-updater = "2.14.1"
 
+[dev-dependencies]
+# 测试内部测试包的版本号（如 0.1.2+3）与检查更新的比较方式；版本跟随更新插件
+semver = "1.0.28"
+
 # 发布包体积优化，参见 https://tauri.app/concept/size/#cargo-configuration
 [profile.release]
 codegen-units = 1

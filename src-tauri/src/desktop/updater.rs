@@ -152,6 +152,21 @@ mod tests {
         }
     }
 
+    /// 内部测试包的版本号带构建号（如 0.1.2+3）。更新插件默认按「新版本 > 当前版本」判断，
+    /// 构建号只在前三段相同时参与比较：同版本号的正式版不算新版本，下一个正式版照常算新版本。
+    #[test]
+    fn dev_build_versions_still_receive_next_release() {
+        let v = |text: &str| semver::Version::parse(text).unwrap();
+        let dev = v("0.1.2+3");
+        assert!(v("0.1.2") <= dev);
+        assert!(v("0.1.1") < dev);
+        assert!(v("0.1.3") > dev);
+        assert!(v("0.2.0") > dev);
+        assert!(v("0.1.2+10") > v("0.1.2+9"));
+        // 不能用预发布写法当版本号：0.1.2-dev.3 比正式的 0.1.2 小，会被提示「更新」回 0.1.2
+        assert!(v("0.1.2") > v("0.1.2-dev.3"));
+    }
+
     #[test]
     fn network_errors_ask_to_check_connection() {
         let text = message(Stage::Check, UpdaterError::Network("timeout".into()));
