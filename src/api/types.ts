@@ -183,7 +183,6 @@ export interface Clock {
 }
 
 export type ShortfallDefault = 'suspend' | 'spread' | 'nextDay';
-export type CountdownEnd = 'pause' | 'continue';
 export type TimerStyle = 'digital' | 'analog';
 export type TimerDisplay = 'countDown' | 'countUp';
 
@@ -191,7 +190,8 @@ export interface Settings {
   /** `system` 或 IANA 时区名 */
   timezone: string;
   shortfallDefault: ShortfallDefault;
-  countdownEnd: CountdownEnd;
+  /** 倒计时归零（今天的目标学完）时提醒，由用户选择继续或暂停；计时从不自动停下 */
+  countdownReminder: boolean;
   timerStyle: TimerStyle;
   timerDisplay: TimerDisplay;
   toggleHotkey: string;
@@ -200,6 +200,14 @@ export interface Settings {
   silentStart: boolean;
   /** 单次计时超过多少分钟提醒，0 表示不提醒 */
   longSessionMinutes: number;
+}
+
+/** 等待用户处理的倒计时归零提醒 */
+export interface CountdownReminder {
+  /** 提醒针对的那次计时 */
+  sessionId: number;
+  planName: string;
+  targetMinutes: number;
 }
 
 /** 可以更新到的新版本 */

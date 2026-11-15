@@ -1,6 +1,7 @@
-//! 桌面端系统集成：托盘、全局快捷键、计时监视与系统通知、关闭到托盘、开机自启、检查更新。
+//! 桌面端系统集成：托盘、全局快捷键、计时监视与系统通知、倒计时归零提醒、关闭到托盘、开机自启、检查更新。
 
 pub mod hotkey;
+pub mod reminder;
 pub mod startup;
 mod tray;
 pub mod updater;
@@ -13,7 +14,7 @@ use crate::db::Db;
 use crate::domain::{Ctx, plans, sessions, settings};
 use crate::error::AppResult;
 
-/// 计时状态在界面之外发生变化（托盘、快捷键、自动暂停）时通知前端刷新
+/// 计时状态在界面之外发生变化（托盘、快捷键、在归零提醒的通知里暂停）时通知前端刷新
 pub const TIMER_CHANGED_EVENT: &str = "timer-changed";
 
 pub fn setup<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {

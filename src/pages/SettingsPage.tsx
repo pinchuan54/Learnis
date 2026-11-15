@@ -10,7 +10,6 @@ import {
   useUpdateSettings,
 } from '../api/hooks';
 import type {
-  CountdownEnd,
   Settings,
   ShortfallDefault,
   TimerDisplay,
@@ -102,15 +101,14 @@ export function SettingsPage() {
                   onChange={(timerDisplay) => save({ timerDisplay })}
                 />
               </SettingRow>
-              <SettingRow title="倒计时归零后" hint="选择继续时，超出目标的部分会用橙色标出">
-                <SegmentedControl<CountdownEnd>
-                  ariaLabel="倒计时归零后"
-                  options={[
-                    { value: 'pause', label: '自动暂停并提醒' },
-                    { value: 'continue', label: '继续计时' },
-                  ]}
-                  value={settings.countdownEnd}
-                  onChange={(countdownEnd) => save({ countdownEnd })}
+              <SettingRow
+                title="倒计时归零提醒"
+                hint="今天的目标学完时提醒你，选择继续学习或暂停。计时不会自动停下，超出的部分用橙色标出"
+              >
+                <Switch
+                  label="倒计时归零提醒"
+                  checked={settings.countdownReminder}
+                  onChange={(countdownReminder) => save({ countdownReminder })}
                 />
               </SettingRow>
               <SettingRow title="长时间计时提醒" hint="单次连续计时超过设定时长时提醒休息">

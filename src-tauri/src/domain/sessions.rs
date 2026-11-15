@@ -84,6 +84,18 @@ pub fn stop(conn: &Connection, ctx: &Ctx) -> AppResult<Option<Session>> {
     get(conn, session.id).map(Some)
 }
 
+/// 只在指定的那次计时仍在进行时暂停它，返回是否暂停了。
+/// 用于响应较早发出的提醒：期间用户可能已经暂停或换了计划，这时什么也不做。
+pub fn stop_if_running(conn: &Connection, ctx: &Ctx, session_id: i64) -> AppResult<bool> {
+    match running(conn)? {
+        Some(session) if session.id == session_id => {
+            stop(conn, ctx)?;
+            Ok(true)
+        }
+        _ => Ok(false),
+    }
+}
+
 fn validate_input(
     conn: &Connection,
     ctx: &Ctx,
@@ -243,6 +255,22 @@ mod tests {
         assert_eq!(stopped.end_at, Some(ms_at("2026-11-02", 10)));
         assert!(running(&conn).unwrap().is_none());
         assert!(stop(&conn, &ctx_at("2026-11-02", 11)).unwrap().is_none());
+    }
+
+    #[test]
+    fn stop_if_running_only_stops_that_session() {
+        let (conn, plan_id) = setup();
+        let first = start(&conn, &ctx_at("2026-11-02", 9), plan_id).unwrap();
+        stop(&conn, &ctx_at("2026-11-02", 10)).unwrap();
+        let second = start(&conn, &ctx_at("2026-11-02", 11), plan_id).unwrap();
+
+        // 旧计时的提醒不能暂停新的计时
+        assert!(!stop_if_running(&conn, &ctx_at("2026-11-02", 12), first.id).unwrap());
+        assert_eq!(running(&conn).unwrap().unwrap().id, second.id);
+
+        assert!(stop_if_running(&conn, &ctx_at("2026-11-02", 12), second.id).unwrap());
+        assert!(running(&conn).unwrap().is_none());
+        assert!(!stop_if_running(&conn, &ctx_at("2026-11-02", 13), second.id).unwrap());
     }
 
     #[test]
