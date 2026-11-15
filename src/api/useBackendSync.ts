@@ -5,12 +5,16 @@ import { inTauri } from '../lib/platform';
 import { api } from './client';
 import { useClock } from './hooks';
 
-/** 与 Rust 端 desktop::TIMER_CHANGED_EVENT 一致 */
-const TIMER_CHANGED_EVENT = 'timer-changed';
+/**
+ * 后台发出、需要刷新数据的事件：
+ * - 与 Rust 端 desktop::TIMER_CHANGED_EVENT 一致：托盘、快捷键、通知按钮改变了计时；
+ * - 与 Rust 端 desktop::reminder::COUNTDOWN_REMINDER_EVENT 一致：倒计时归零提醒出现或被处理。
+ */
+const REFRESH_EVENTS = ['timer-changed', 'countdown-reminder'];
 
 /**
  * 保持界面与后台一致：
- * - 托盘、快捷键、自动暂停改变了计时 → 刷新数据；
+ * - 后台改变了计时或提醒 → 刷新数据；
  * - 跨过日界线 → 按默认方式处理未达标时长，并刷新数据。
  */
 export function useBackendSync() {
@@ -21,18 +25,20 @@ export function useBackendSync() {
   useEffect(() => {
     if (!inTauri) return;
     let disposed = false;
-    let unlisten: (() => void) | undefined;
-    listen(TIMER_CHANGED_EVENT, () => {
-      void queryClient.invalidateQueries();
-    })
-      .then((fn) => {
-        if (disposed) fn();
-        else unlisten = fn;
+    const unlisteners: (() => void)[] = [];
+    for (const event of REFRESH_EVENTS) {
+      listen(event, () => {
+        void queryClient.invalidateQueries();
       })
-      .catch(() => {});
+        .then((fn) => {
+          if (disposed) fn();
+          else unlisteners.push(fn);
+        })
+        .catch(() => {});
+    }
     return () => {
       disposed = true;
-      unlisten?.();
+      for (const fn of unlisteners) fn();
     };
   }, [queryClient]);
 

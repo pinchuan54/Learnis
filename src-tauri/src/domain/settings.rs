@@ -22,17 +22,6 @@ pub enum ShortfallDefault {
     NextDay,
 }
 
-/// 倒计时归零后的行为
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
-#[serde(rename_all = "camelCase")]
-pub enum CountdownEnd {
-    /// 自动暂停并提醒
-    #[default]
-    Pause,
-    /// 继续计时，醒目显示额外学习的时长
-    Continue,
-}
-
 /// 计时器外观
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
 #[serde(rename_all = "camelCase")]
@@ -61,7 +50,9 @@ pub struct Settings {
     /// `system` 或 IANA 时区名，决定「哪一天」与日界线
     pub timezone: String,
     pub shortfall_default: ShortfallDefault,
-    pub countdown_end: CountdownEnd,
+    /// 倒计时归零（今天的目标学完）时提醒，由用户选择继续或暂停；计时从不自动停下。
+    /// 取代旧版的 `countdownEnd`（自动暂停 / 继续计时），旧数据里的该字段读取时忽略。
+    pub countdown_reminder: bool,
     pub timer_style: TimerStyle,
     pub timer_display: TimerDisplay,
     /// 开始 / 暂停计时的全局快捷键
@@ -79,7 +70,7 @@ impl Default for Settings {
         Self {
             timezone: SYSTEM_TIMEZONE.into(),
             shortfall_default: ShortfallDefault::default(),
-            countdown_end: CountdownEnd::default(),
+            countdown_reminder: true,
             timer_style: TimerStyle::default(),
             timer_display: TimerDisplay::default(),
             toggle_hotkey: "Ctrl+Shift+F12".into(),
@@ -170,7 +161,7 @@ mod tests {
         .unwrap();
         assert_eq!(updated.timezone, "Asia/Shanghai");
         assert_eq!(updated.timer_style, TimerStyle::Analog);
-        assert_eq!(updated.countdown_end, CountdownEnd::Pause);
+        assert!(updated.countdown_reminder);
         assert_eq!(get(&conn).unwrap(), updated);
     }
 
@@ -193,6 +184,38 @@ mod tests {
         let updated = update(&conn, &json!({ "silentStart": true })).unwrap();
         assert!(updated.silent_start);
         assert_eq!(updated.timezone, "Asia/Shanghai");
+    }
+
+    #[test]
+    fn old_countdown_end_setting_becomes_reminder() {
+        // 旧版的「自动暂停并提醒 / 继续计时」都改为「提醒，计时继续」
+        for old in ["pause", "continue"] {
+            let conn = conn();
+            conn.execute(
+                "INSERT INTO settings (key, value) VALUES (?1, ?2)",
+                params![
+                    SETTINGS_KEY,
+                    format!(r#"{{"countdownEnd":"{old}","timerStyle":"analog"}}"#)
+                ],
+            )
+            .unwrap();
+            let settings = get(&conn).unwrap();
+            assert!(settings.countdown_reminder);
+            assert_eq!(settings.timer_style, TimerStyle::Analog);
+
+            // 保存后旧字段被移除，也不能再单独修改
+            update(&conn, &json!({ "countdownReminder": false })).unwrap();
+            let stored: String = conn
+                .query_row(
+                    "SELECT value FROM settings WHERE key = ?1",
+                    [SETTINGS_KEY],
+                    |row| row.get(0),
+                )
+                .unwrap();
+            assert!(!stored.contains("countdownEnd"));
+            assert!(!get(&conn).unwrap().countdown_reminder);
+            assert!(update(&conn, &json!({ "countdownEnd": "pause" })).is_err());
+        }
     }
 
     #[test]

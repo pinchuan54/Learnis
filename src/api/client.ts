@@ -4,6 +4,7 @@ import type {
   Adjustment,
   AllocationPreview,
   Clock,
+  CountdownReminder,
   DayDetail,
   MonthOverview,
   PendingShortfall,
@@ -96,6 +97,11 @@ export const api = {
   updateSession: (id: number, input: SessionInput) =>
     call<Session>('update_session', { id, input }),
   deleteSession: (id: number) => call<void>('delete_session', { id }),
+  /** 等待处理的倒计时归零提醒 */
+  getCountdownReminder: () => call<CountdownReminder | null>('get_countdown_reminder'),
+  /** 处理归零提醒：pause 为真时暂停提醒针对的那次计时，否则继续学习 */
+  answerCountdownReminder: (sessionId: number, pause: boolean) =>
+    call<void>('answer_countdown_reminder', { sessionId, pause }),
 
   // 未达标与调整
   listPending: () => call<PendingShortfall[]>('list_pending'),

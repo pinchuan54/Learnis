@@ -1,0 +1,68 @@
+/* 右下角的提醒卡片：浮在页面上方，不遮罩、不拦截卡片以外的操作。
+   放在右下角而不是右上角，免得挡住页面标题旁的日期切换等按钮 */
+.card {
+  position: fixed;
+  z-index: 100;
+  right: var(--space-5);
+  bottom: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  width: 340px;
+  max-width: calc(100vw - 2 * var(--space-5));
+  padding: var(--space-4) var(--space-4) var(--space-3);
+  border-radius: var(--radius-lg);
+  background: var(--nav-bg);
+  backdrop-filter: saturate(180%) blur(20px);
+  box-shadow: var(--sheet-shadow);
+  color: var(--color-text);
+  animation: card-in var(--duration-normal) var(--ease-standard);
+}
+
+@keyframes card-in {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.badge {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--status-done);
+  color: #fff;
+}
+
+.badge svg {
+  width: 13px;
+  height: 13px;
+}
+
+.title {
+  font-size: var(--text-callout);
+  font-weight: 700;
+}
+
+.text {
+  font-size: var(--text-footnote);
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+}

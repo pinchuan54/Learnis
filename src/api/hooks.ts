@@ -25,6 +25,7 @@ export const queryKeys = {
   month: (year: number, month: number) => ['month', year, month] as const,
   day: (date: string) => ['day', date] as const,
   timer: ['timer'] as const,
+  countdownReminder: ['countdownReminder'] as const,
   pending: ['pending'] as const,
 } satisfies Record<string, QueryKey | ((...args: never[]) => QueryKey)>;
 
@@ -73,6 +74,9 @@ export const useMovableMinutes = (planId: number, date: string) =>
 export const useTimerStatus = () =>
   useQuery({ queryKey: queryKeys.timer, queryFn: api.getTimerStatus });
 
+export const useCountdownReminder = () =>
+  useQuery({ queryKey: queryKeys.countdownReminder, queryFn: api.getCountdownReminder });
+
 export const usePending = () => useQuery({ queryKey: queryKeys.pending, queryFn: api.listPending });
 
 // ---------- 修改 ----------
@@ -117,6 +121,11 @@ export const useDeletePlan = () => useDataMutation((id: number) => api.deletePla
 export const useStartTimer = () => useDataMutation((planId: number) => api.startTimer(planId));
 
 export const useStopTimer = () => useDataMutation(() => api.stopTimer());
+
+export const useAnswerCountdownReminder = () =>
+  useDataMutation(({ sessionId, pause }: { sessionId: number; pause: boolean }) =>
+    api.answerCountdownReminder(sessionId, pause),
+  );
 
 export const useAddSession = () => useDataMutation((input: SessionInput) => api.addSession(input));
 

@@ -228,6 +228,26 @@ pub async fn reorder_todos(db: State<'_, Db>, date: String, ids: Vec<i64>) -> Ap
     })
 }
 
+// ---------- 倒计时归零提醒 ----------
+
+/// 等待用户处理的归零提醒，没有则为 `null`
+#[cfg(desktop)]
+#[tauri::command]
+pub async fn get_countdown_reminder() -> Option<desktop::reminder::CountdownReminder> {
+    desktop::reminder::pending()
+}
+
+/// 处理归零提醒：`pause` 为真时暂停提醒针对的那次计时（已经结束则什么也不做），否则继续学习
+#[cfg(desktop)]
+#[tauri::command]
+pub async fn answer_countdown_reminder<R: Runtime>(
+    app: AppHandle<R>,
+    session_id: i64,
+    pause: bool,
+) -> AppResult<()> {
+    desktop::reminder::answer(&app, session_id, pause)
+}
+
 // ---------- 开机自启 ----------
 
 /// 系统里是否已登记开机自启

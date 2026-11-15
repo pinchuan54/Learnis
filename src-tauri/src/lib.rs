@@ -90,6 +90,10 @@ pub fn run() {
             #[cfg(desktop)]
             commands::install_update,
             #[cfg(desktop)]
+            commands::get_countdown_reminder,
+            #[cfg(desktop)]
+            commands::answer_countdown_reminder,
+            #[cfg(desktop)]
             commands::get_autostart,
             #[cfg(desktop)]
             commands::set_autostart,
