@@ -250,6 +250,7 @@ function AboutSection() {
               <span className={styles.appName}>Learnis</span>
               <span className={styles.settingHint}>
                 版本 {formatDisplayVersion(__APP_VERSION__)}
+                {__BUILD_COMMIT__ && ` · ${__BUILD_COMMIT__}`}
                 {state.phase === 'latest' && (
                   <span className={styles.latest}>
                     <CheckIcon />

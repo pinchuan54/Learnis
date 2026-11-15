@@ -6,12 +6,17 @@ import pkg from './package.json' with { type: 'json' };
 const host = process.env.TAURI_DEV_HOST;
 const isDebug = !!process.env.TAURI_ENV_DEBUG;
 
+// 内部测试包由 npm run build:dev 传入带构建号的版本号（如 0.1.2+3）和提交号；正式版不传
+const appVersion = process.env.LEARNIS_APP_VERSION || pkg.version;
+const buildCommit = process.env.LEARNIS_BUILD_COMMIT || '';
+
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
 
   define: {
-    __APP_VERSION__: JSON.stringify(pkg.version),
+    __APP_VERSION__: JSON.stringify(appVersion),
+    __BUILD_COMMIT__: JSON.stringify(buildCommit),
   },
 
   // 以下为 Tauri 开发所需的设置
