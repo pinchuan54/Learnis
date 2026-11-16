@@ -9,7 +9,8 @@ use super::Ctx;
 use super::adjustments::{self, Ledger, load_ledger, shortfall_minutes};
 use super::allocation::is_study_weekday;
 use super::model::{
-    Clock, DayCell, DayDetail, DayPlanEntry, MonthOverview, Plan, PlanDayProgress, TimerStatus,
+    Clock, DayCell, DayDetail, DayPlanEntry, DayStatus, MonthOverview, Plan, PlanDayProgress,
+    TimerStatus,
 };
 use super::{plans, sessions, todos};
 use crate::error::{AppError, AppResult};
@@ -29,6 +30,47 @@ fn effective_target(plan: &Plan, ledger: &Ledger, date: NaiveDate, today: NaiveD
         0
     } else {
         ledger.target()
+    }
+}
+
+/// 时长按月历显示的精度（0.1 小时）四舍五入，与前端 `formatHours` 的结果一致
+fn display_tenths_of_hour(seconds: i64) -> i64 {
+    (seconds.max(0) + 180) / 360
+}
+
+/// 月历中一天的状态。
+///
+/// 多学按月历上显示的数字判定（已学显示的小时数比目标大）：计时常会多跑几秒到几分钟，
+/// 显示 2.1/2.1h 的日子仍算达标，颜色和数字始终对得上。没有目标却学了也算多学。
+pub fn day_status(
+    target_minutes: i64,
+    studied_seconds: i64,
+    pending_minutes: i64,
+    date: NaiveDate,
+    today: NaiveDate,
+) -> DayStatus {
+    if target_minutes <= 0 {
+        return if studied_seconds > 0 {
+            DayStatus::Overtime
+        } else {
+            DayStatus::Rest
+        };
+    }
+    let target_seconds = target_minutes * 60;
+    if display_tenths_of_hour(studied_seconds) > display_tenths_of_hour(target_seconds) {
+        DayStatus::Overtime
+    } else if studied_seconds >= target_seconds {
+        DayStatus::Done
+    } else if date < today {
+        if pending_minutes > 0 {
+            DayStatus::Missed
+        } else {
+            DayStatus::Done
+        }
+    } else if date > today {
+        DayStatus::Future
+    } else {
+        DayStatus::Progress
     }
 }
 
@@ -54,6 +96,7 @@ pub fn month(conn: &Connection, ctx: &Ctx, year: i32, month: u32) -> AppResult<M
             plan_count: 0,
             adjusted: false,
             pending_minutes: 0,
+            status: DayStatus::Rest,
         };
         for plan in &plans {
             let entry = ledger.get(&(plan.id, date)).copied().unwrap_or_default();
@@ -70,6 +113,13 @@ pub fn month(conn: &Connection, ctx: &Ctx, year: i32, month: u32) -> AppResult<M
                 cell.pending_minutes += shortfall_minutes(target, seconds);
             }
         }
+        cell.status = day_status(
+            cell.target_minutes,
+            cell.studied_seconds,
+            cell.pending_minutes,
+            date,
+            ctx.today,
+        );
         days.push(cell);
         date = next_day(date);
     }
@@ -167,7 +217,96 @@ mod tests {
     use super::*;
     use crate::domain::model::{AdjustMode, AdjustRequest};
     use crate::domain::plans::{create, sample_input};
-    use crate::domain::testing::{conn, ctx_at};
+    use crate::domain::testing::{conn, ctx_at, d};
+
+    #[test]
+    fn day_status_marks_overtime_by_displayed_hours() {
+        let today = d("2026-11-17");
+        let past = d("2026-11-14");
+        // 目标 2.1 小时（126 分钟）：刚好学够或多跑几秒，显示 2.1/2.1h，仍是达标
+        assert_eq!(day_status(126, 126 * 60, 0, past, today), DayStatus::Done);
+        assert_eq!(
+            day_status(126, 126 * 60 + 10, 0, past, today),
+            DayStatus::Done
+        );
+        assert_eq!(
+            day_status(126, 129 * 60 - 1, 0, past, today),
+            DayStatus::Done
+        );
+        // 显示成 2.2/2.1h 起算多学
+        assert_eq!(
+            day_status(126, 129 * 60, 0, past, today),
+            DayStatus::Overtime
+        );
+        assert_eq!(
+            day_status(126, 384 * 60, 0, past, today),
+            DayStatus::Overtime
+        );
+        // 今天学超了也是多学
+        assert_eq!(
+            day_status(126, 384 * 60, 0, today, today),
+            DayStatus::Overtime
+        );
+        assert_eq!(day_status(126, 126 * 60, 0, today, today), DayStatus::Done);
+    }
+
+    #[test]
+    fn day_status_without_target() {
+        let today = d("2026-11-17");
+        assert_eq!(day_status(0, 0, 0, today, today), DayStatus::Rest);
+        assert_eq!(day_status(0, 0, 0, d("2026-11-20"), today), DayStatus::Rest);
+        // 没有目标却学了，全部算多学
+        assert_eq!(
+            day_status(0, 600, 0, d("2026-11-15"), today),
+            DayStatus::Overtime
+        );
+        assert_eq!(day_status(0, 30, 0, today, today), DayStatus::Overtime);
+    }
+
+    #[test]
+    fn day_status_before_target_is_reached() {
+        let today = d("2026-11-17");
+        let past = d("2026-11-16");
+        assert_eq!(day_status(126, 600, 116, past, today), DayStatus::Missed);
+        // 没学够的时长已经处理掉（如归档的计划）
+        assert_eq!(day_status(126, 600, 0, past, today), DayStatus::Done);
+        assert_eq!(day_status(126, 600, 0, today, today), DayStatus::Progress);
+        assert_eq!(
+            day_status(126, 0, 0, d("2026-11-18"), today),
+            DayStatus::Future
+        );
+    }
+
+    #[test]
+    fn month_overview_reports_day_status() {
+        let mut conn = conn();
+        let plan = create(
+            &mut conn,
+            &ctx_at("2026-11-01", 0),
+            &sample_input(600, "2026-11-01", "2026-11-10"),
+        )
+        .unwrap();
+        // 每天目标 1 小时：1 日学 1 小时，2 日学 3 小时，3 日没学
+        sessions::start(&conn, &ctx_at("2026-11-01", 9), plan.id).unwrap();
+        sessions::stop(&conn, &ctx_at("2026-11-01", 10)).unwrap();
+        sessions::start(&conn, &ctx_at("2026-11-02", 9), plan.id).unwrap();
+        sessions::stop(&conn, &ctx_at("2026-11-02", 12)).unwrap();
+
+        let overview = month(&conn, &ctx_at("2026-11-04", 12), 2026, 11).unwrap();
+        let status: Vec<_> = overview.days[..6].iter().map(|day| day.status).collect();
+        assert_eq!(
+            status,
+            [
+                DayStatus::Done,
+                DayStatus::Overtime,
+                DayStatus::Missed,
+                DayStatus::Progress,
+                DayStatus::Future,
+                DayStatus::Future,
+            ]
+        );
+        assert_eq!(overview.days[15].status, DayStatus::Rest);
+    }
 
     #[test]
     fn month_overview_aggregates_targets_and_pending() {

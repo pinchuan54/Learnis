@@ -1,29 +1,24 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
-import { useClock, useMonth, usePlans } from '../api/hooks';
+import { useClock, useMonth, usePlans, useSettings } from '../api/hooks';
 import { ChevronLeftIcon, ChevronRightIcon, PlusIcon } from '../components/icons';
 import { Button } from '../components/ui/Button';
 import { ProgressRing } from '../components/ui/ProgressRing';
 import { PendingPanel } from '../features/adjust/PendingPanel';
 import { MonthGrid } from '../features/calendar/MonthGrid';
+import { LEGEND } from '../features/calendar/statusColors';
 import { PlanSheet } from '../features/plans/PlanSheet';
 import { formatMonthTitle, parseDateKey, shiftMonth } from '../lib/dates';
 import { formatHours } from '../lib/format';
 import page from '../styles/page.module.css';
 import styles from './CalendarPage.module.css';
 
-const LEGEND = [
-  { label: '达标', color: 'var(--status-done)' },
-  { label: '进行中', color: 'var(--status-progress)' },
-  { label: '没学够', color: 'var(--status-missed)' },
-  { label: '有调整', color: 'var(--status-adjusted)' },
-];
-
 /** 月历：主界面 */
 export function CalendarPage() {
   const navigate = useNavigate();
   const { data: clock } = useClock();
   const { data: plans } = usePlans();
+  const { data: settings } = useSettings();
   const [view, setView] = useState<{ year: number; month: number } | null>(null);
   const [creating, setCreating] = useState(false);
 
@@ -107,14 +102,16 @@ export function CalendarPage() {
           {overview && (
             <MonthGrid overview={overview} onSelect={(date) => navigate(`/day/${date}`)} />
           )}
-          <ul className={styles.legend} aria-label="图例">
-            {LEGEND.map((item) => (
-              <li key={item.label}>
-                <span className={styles.legendDot} style={{ background: item.color }} />
-                {item.label}
-              </li>
-            ))}
-          </ul>
+          {settings?.showCalendarLegend && (
+            <ul className={styles.legend} aria-label="图例">
+              {LEGEND.map((item) => (
+                <li key={item.label}>
+                  <span className={styles.legendDot} style={{ background: item.color }} />
+                  {item.label}
+                </li>
+              ))}
+            </ul>
+          )}
         </>
       )}
 

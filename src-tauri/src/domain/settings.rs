@@ -63,6 +63,8 @@ pub struct Settings {
     pub silent_start: bool,
     /// 单次计时超过多少分钟提醒，0 表示不提醒
     pub long_session_minutes: i64,
+    /// 月历下方显示图例（各颜色的含义）
+    pub show_calendar_legend: bool,
 }
 
 impl Default for Settings {
@@ -77,6 +79,7 @@ impl Default for Settings {
             close_to_tray: true,
             silent_start: false,
             long_session_minutes: 180,
+            show_calendar_legend: true,
         }
     }
 }
@@ -180,10 +183,15 @@ mod tests {
         assert_eq!(settings.timezone, "Asia/Shanghai");
         assert!(!settings.close_to_tray);
         assert!(!settings.silent_start);
+        assert!(settings.show_calendar_legend);
 
         let updated = update(&conn, &json!({ "silentStart": true })).unwrap();
         assert!(updated.silent_start);
         assert_eq!(updated.timezone, "Asia/Shanghai");
+
+        let updated = update(&conn, &json!({ "showCalendarLegend": false })).unwrap();
+        assert!(!updated.show_calendar_legend);
+        assert!(!get(&conn).unwrap().show_calendar_legend);
     }
 
     #[test]

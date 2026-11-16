@@ -265,6 +265,24 @@ pub struct DayPlanEntry {
     pub pending_minutes: i64,
 }
 
+/// 月历中一天的状态，决定进度环的颜色
+#[derive(Debug, Clone, Copy, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub enum DayStatus {
+    /// 没有目标也没有学习
+    Rest,
+    /// 以后的日子
+    Future,
+    /// 今天，还没学够
+    Progress,
+    /// 学够了目标
+    Done,
+    /// 多学：已学的小时数（按月历显示的 1 位小数）比目标大，或没有目标却学了
+    Overtime,
+    /// 过去的日子没学够，还有挂起的时长
+    Missed,
+}
+
 /// 月历中的一天
 #[derive(Debug, Clone, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
@@ -277,6 +295,7 @@ pub struct DayCell {
     /// 当天的时长是否被调整过（调入或调出）
     pub adjusted: bool,
     pub pending_minutes: i64,
+    pub status: DayStatus,
 }
 
 #[derive(Debug, Clone, Serialize)]
