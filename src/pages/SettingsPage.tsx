@@ -77,6 +77,21 @@ export function SettingsPage() {
 
       {settings && (
         <>
+          <Section title="月历" text="月历页面的显示方式。">
+            <ul className={styles.group}>
+              <SettingRow
+                title="显示图例"
+                hint="在月历下方说明各颜色的含义：达标、多学、进行中、没学够、有调整"
+              >
+                <Switch
+                  label="显示图例"
+                  checked={settings.showCalendarLegend}
+                  onChange={(showCalendarLegend) => save({ showCalendarLegend })}
+                />
+              </SettingRow>
+            </ul>
+          </Section>
+
           <Section title="计时器" text="计时页面默认的外观和行为，计时时也可以随时切换。">
             <ul className={styles.group}>
               <SettingRow title="默认外观">

@@ -150,6 +150,12 @@ export interface DayPlanEntry {
   pendingMinutes: number;
 }
 
+/**
+ * 月历中一天的状态（由后端计算）：休息 / 未开始 / 进行中 / 达标 / 多学 / 没学够。
+ * 多学按月历显示的小时数判定：已学显示得比目标大，或没有目标却学了。
+ */
+export type DayStatus = 'rest' | 'future' | 'progress' | 'done' | 'overtime' | 'missed';
+
 export interface DayCell {
   date: string;
   targetMinutes: number;
@@ -157,6 +163,7 @@ export interface DayCell {
   planCount: number;
   adjusted: boolean;
   pendingMinutes: number;
+  status: DayStatus;
 }
 
 export interface MonthOverview {
@@ -200,6 +207,8 @@ export interface Settings {
   silentStart: boolean;
   /** 单次计时超过多少分钟提醒，0 表示不提醒 */
   longSessionMinutes: number;
+  /** 月历下方显示图例（各颜色的含义） */
+  showCalendarLegend: boolean;
 }
 
 /** 等待用户处理的倒计时归零提醒 */

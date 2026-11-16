@@ -105,3 +105,7 @@ button.cell:hover {
 .done .amount {
   color: var(--status-done);
 }
+
+.overtime .amount {
+  color: var(--status-overtime);
+}

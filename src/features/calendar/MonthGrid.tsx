@@ -1,17 +1,9 @@
-import type { DayCell, MonthOverview } from '../../api/types';
+import type { DayCell, DayStatus, MonthOverview } from '../../api/types';
 import { ProgressRing } from '../../components/ui/ProgressRing';
 import { monthGrid, parseDateKey, WEEKDAY_SHORT } from '../../lib/dates';
 import { formatHours, formatMinutes, formatSeconds } from '../../lib/format';
-import { type DayStatus, dayStatus } from './dayStatus';
 import styles from './MonthGrid.module.css';
-
-const STATUS_COLOR: Record<DayStatus, string> = {
-  rest: 'var(--color-fill)',
-  future: 'var(--color-fill)',
-  progress: 'var(--status-progress)',
-  done: 'var(--status-done)',
-  missed: 'var(--status-missed)',
-};
+import { STATUS_COLOR } from './statusColors';
 
 function cellLabel(date: string, cell: DayCell | undefined, status: DayStatus): string {
   const { month, day } = parseDateKey(date);
@@ -44,7 +36,7 @@ export function MonthGrid({ overview, onSelect }: MonthGridProps) {
         const { month, day } = parseDateKey(date);
         const inMonth = month === overview.month;
         const cell = inMonth ? cells.get(date) : undefined;
-        const status = dayStatus(cell, overview.today);
+        const status: DayStatus = cell?.status ?? 'rest';
         const isToday = date === overview.today;
         const progress =
           cell && cell.targetMinutes > 0 ? cell.studiedSeconds / (cell.targetMinutes * 60) : 0;
@@ -72,7 +64,9 @@ export function MonthGrid({ overview, onSelect }: MonthGridProps) {
             {status !== 'rest' && cell && (
               <>
                 <ProgressRing
-                  progress={status === 'done' ? Math.max(progress, 1) : progress}
+                  progress={
+                    status === 'done' || status === 'overtime' ? Math.max(progress, 1) : progress
+                  }
                   size={34}
                   stroke={4.5}
                   color={STATUS_COLOR[status]}
