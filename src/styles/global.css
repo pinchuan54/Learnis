@@ -66,6 +66,32 @@ button {
   background-color: var(--scrollbar-thumb-hover);
 }
 
+/*
+ * 外观切换（见 src/theme/ThemeProvider.tsx）：
+ * 新外观从被点的外观卡片处以圆形展开，盖过旧外观的截图。圆形由脚本对
+ * ::view-transition-new(root) 做 clip-path 动画，这里关掉浏览器默认的交叉淡入淡出。
+ */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+/* 不支持视图过渡、或跟随系统时系统自己切换深浅色：脚本临时加上 theme-fade，整体颜色渐变 */
+html.theme-fade,
+html.theme-fade *,
+html.theme-fade *::before,
+html.theme-fade *::after {
+  transition:
+    background-color 0.45s ease,
+    color 0.45s ease,
+    border-color 0.45s ease,
+    outline-color 0.45s ease,
+    box-shadow 0.45s ease,
+    fill 0.45s ease,
+    stroke 0.45s ease !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
