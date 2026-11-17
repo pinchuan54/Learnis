@@ -48,7 +48,14 @@ describe('DialController', () => {
     controller.grab('digital', 'minute', 60, 1000);
     // 按住期间计时停住
     expect(controller.learnedAt(5000)).toBeCloseTo(3181, 5);
+    // 停表请求先完成也不刷新：界面仍当作在计时，暂停按钮和顶部胶囊不变
+    await flush();
+    expect(calls).toEqual(['stop']);
     const t = dragMinutes(controller, 2.4, 400, 1000);
+    // 帧数据带着计划和拖动中的已学，顶部胶囊跟着走
+    const frame = controller.tick(t);
+    expect(frame?.planId).toBe(7);
+    expect((frame?.learnedLive ?? 0) + (frame?.offset ?? 0)).toBeGreaterThan(3181 + 60);
     // 停住一会儿再松手：顺着方向落到 +3 分钟
     controller.release(t + 300);
     expect(controller.learnedAt(t + 300)).toBeCloseTo(3181 + 180, 5);

@@ -1,5 +1,6 @@
 import { Link, useLocation } from 'react-router';
 import { usePlans, useSettings, useTimerStatus } from '../api/hooks';
+import { useLiveLearned } from '../features/timer/liveLearned';
 import { useNow } from '../hooks/useNow';
 import { formatClock } from '../lib/format';
 import { planColorVar } from '../lib/planColors';
@@ -78,10 +79,15 @@ function TimerPill() {
   const { data: plans } = usePlans(true);
   const running = status?.running ?? null;
   const now = useNow(1000, running !== null);
+  const live = useLiveLearned();
 
   if (!status || !running || !status.planToday) return null;
   const plan = plans?.find((item) => item.id === running.planId);
-  const studied = status.planToday.studiedSeconds + Math.max(0, (now - status.nowMs) / 1000);
+  // 计时器表正显示这个计划时跟着表走（拖动调整时实时变化），否则按服务端数据推算
+  const studied =
+    live?.planId === running.planId
+      ? live.seconds
+      : status.planToday.studiedSeconds + Math.max(0, (now - status.nowMs) / 1000);
 
   return (
     <Link to="/today" className={styles.pill} title="正在计时，点击查看">

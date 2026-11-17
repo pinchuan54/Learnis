@@ -11,6 +11,7 @@ import { AdjustBadge } from './AdjustBadge';
 import { AnalogStopwatch } from './AnalogStopwatch';
 import { DigitalDisplay } from './DigitalDisplay';
 import { useDialController } from './dial/useDialController';
+import { publishLiveLearned } from './liveLearned';
 import styles from './TimerPanel.module.css';
 
 const DISPLAY_OPTIONS: { value: TimerDisplay; label: string }[] = [
@@ -70,11 +71,12 @@ export function TimerPanel({ entries }: { entries: DayPlanEntry[] }) {
     dayStartMs: today ? zonedTimeToMs(today, '00:00', clock?.timezone ?? 'UTC') : 0,
   });
 
-  // 「今天目标…，已学…」按本地时钟模型显示（含刚拖动的修正），以及按住时的握拳光标
+  // 「今天目标…，已学…」和顶部计时胶囊按本地时钟模型显示（含拖动中的调整），以及按住时的握拳光标
   useEffect(() => {
     const root = document.documentElement;
     const unsubscribe = controller.subscribe((frame) => {
       const learned = Math.max(0, frame.learnedLive + frame.offset);
+      publishLiveLearned(frame.planId === null ? null : { planId: frame.planId, seconds: learned });
       const text =
         frame.targetSeconds > 0
           ? `今天目标 ${formatMinutes(frame.targetSeconds / 60)}，已学 ${formatSeconds(learned)}`
@@ -86,6 +88,7 @@ export function TimerPanel({ entries }: { entries: DayPlanEntry[] }) {
     });
     return () => {
       unsubscribe();
+      publishLiveLearned(null);
       root.classList.remove(GRABBING_CLASS);
     };
   }, [controller]);

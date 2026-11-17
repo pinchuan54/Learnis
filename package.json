@@ -1,7 +1,7 @@
 {
   "name": "learnis",
   "private": true,
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "本地学习计划与计时软件",
   "type": "module",
   "engines": {
