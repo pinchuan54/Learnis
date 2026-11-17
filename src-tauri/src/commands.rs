@@ -14,7 +14,7 @@ use crate::domain::model::{
     TodoInput, TodoPatch,
 };
 use crate::domain::settings::Settings;
-use crate::domain::{Ctx, adjustments, overview, plans, sessions, settings, todos};
+use crate::domain::{Ctx, adjustments, corrections, overview, plans, sessions, settings, todos};
 use crate::error::{AppError, AppResult};
 use crate::time::parse_date;
 
@@ -148,6 +148,33 @@ pub async fn stop_timer(db: State<'_, Db>) -> AppResult<TimerStatus> {
         sessions::stop(conn, &ctx)?;
         overview::timer_status(conn, &ctx)
     })
+}
+
+/// 拖动计时器后记一笔手动修正（秒）。`resume` 为真时（按住前计时在走）接着开始新的一段计时：
+/// 按住期间计时已经暂停，调整用掉的时间不计入。两步在同一次调用里完成。
+#[tauri::command]
+pub async fn add_correction(
+    db: State<'_, Db>,
+    plan_id: i64,
+    seconds: i64,
+    resume: bool,
+) -> AppResult<TimerStatus> {
+    db.with(|conn| {
+        let ctx = Ctx::load(conn)?;
+        if seconds != 0 {
+            corrections::add_today(conn, &ctx, plan_id, seconds)?;
+        }
+        if resume && sessions::running(conn)?.is_none() {
+            sessions::start(conn, &ctx, plan_id)?;
+        }
+        overview::timer_status(conn, &ctx)
+    })
+}
+
+/// 删除某天的手动修正
+#[tauri::command]
+pub async fn clear_correction(db: State<'_, Db>, plan_id: i64, date: String) -> AppResult<()> {
+    db.with(|conn| corrections::clear(conn, plan_id, parse_date(&date)?))
 }
 
 #[tauri::command]

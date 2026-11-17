@@ -12,7 +12,7 @@ use super::model::{
     Clock, DayCell, DayDetail, DayPlanEntry, DayStatus, MonthOverview, Plan, PlanDayProgress,
     TimerStatus,
 };
-use super::{plans, sessions, todos};
+use super::{corrections, plans, sessions, todos};
 use crate::error::{AppError, AppResult};
 use crate::time::{day_range_ms, format_date, next_day, parse_date, prev_day};
 
@@ -176,6 +176,7 @@ pub fn day(conn: &Connection, ctx: &Ctx, date: &str) -> AppResult<DayDetail> {
         today: format_date(ctx.today),
         plans: entries,
         sessions: sessions::list_overlapping(conn, from_ms, to_ms, ctx.now_ms)?,
+        corrections: corrections::list_on(conn, date)?,
         todos: todos::list(conn, &format_date(date))?,
         adjustments: adjustments::list_touching(conn, date)?,
     })
@@ -338,6 +339,31 @@ mod tests {
         assert_eq!(overview.days[2].pending_minutes, 0);
         // 期限之外没有计划
         assert_eq!(overview.days[15].plan_count, 0);
+    }
+
+    #[test]
+    fn corrections_count_in_day_detail_and_month() {
+        let mut conn = conn();
+        let plan = create(
+            &mut conn,
+            &ctx_at("2026-11-01", 0),
+            &sample_input(600, "2026-11-01", "2026-11-10"),
+        )
+        .unwrap();
+        let ctx = ctx_at("2026-11-03", 12);
+        // 没开计时，在计时器上补一小时：今天的目标（60 分钟）就算学够了
+        corrections::add_today(&conn, &ctx, plan.id, 3600).unwrap();
+        let detail = day(&conn, &ctx, "2026-11-03").unwrap();
+        assert_eq!(detail.plans[0].studied_seconds, 3600);
+        assert_eq!(detail.corrections.len(), 1);
+        let overview = month(&conn, &ctx, 2026, 11).unwrap();
+        let cell = overview
+            .days
+            .iter()
+            .find(|cell| cell.date == "2026-11-03")
+            .unwrap();
+        assert_eq!(cell.studied_seconds, 3600);
+        assert_eq!(cell.status, DayStatus::Done);
     }
 
     #[test]

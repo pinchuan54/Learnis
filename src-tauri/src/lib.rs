@@ -72,6 +72,8 @@ pub fn run() {
             commands::get_timer_status,
             commands::start_timer,
             commands::stop_timer,
+            commands::add_correction,
+            commands::clear_correction,
             commands::add_session,
             commands::update_session,
             commands::delete_session,

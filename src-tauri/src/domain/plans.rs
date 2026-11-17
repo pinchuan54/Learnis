@@ -7,6 +7,7 @@ use rusqlite::{Connection, OptionalExtension, Row, Transaction, params};
 
 use super::Ctx;
 use super::allocation::{ALL_WEEKDAYS, distribute, study_days};
+use super::corrections;
 use super::model::{AllocationPreview, Plan, PlanInput, PlanSummary};
 use crate::error::{AppError, AppResult};
 use crate::time::{format_date, parse_date};
@@ -131,6 +132,8 @@ pub fn list_summaries(
     let studied: HashMap<i64, i64> = stmt
         .query_map([ctx.now_ms], |row| Ok((row.get(0)?, row.get(1)?)))?
         .collect::<rusqlite::Result<_>>()?;
+    // 累计时长 = 学习记录 + 手动修正
+    let corrections = corrections::total_by_plan(conn)?;
 
     plans
         .into_iter()
@@ -138,7 +141,9 @@ pub fn list_summaries(
             let start = parse_date(&plan.start_date)?;
             let end = parse_date(&plan.end_date)?;
             let study_day_count = study_days(start, end, plan.study_weekdays).len() as i64;
-            let studied_seconds = studied.get(&plan.id).copied().unwrap_or(0) / 1000;
+            let studied_seconds = (studied.get(&plan.id).copied().unwrap_or(0) / 1000
+                + corrections.get(&plan.id).copied().unwrap_or(0))
+            .max(0);
             Ok(PlanSummary {
                 plan,
                 studied_seconds,
