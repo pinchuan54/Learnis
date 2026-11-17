@@ -97,6 +97,7 @@ src/                 前端（React + TypeScript）
   lib/               与界面无关的工具函数（配单元测试）
   styles/            设计令牌、配色与通用区块样式
 public/              静态文件（渲染前应用外观的脚本）
+prototypes/          交互原型（独立网页，不参与构建）：timer-drag 是计时器拖动调时间的手感原型
 scripts/             发版脚本（生成自动更新用的 latest.json）
 src-tauri/src/       桌面端（Rust）
   db/                SQLite 连接与表结构迁移

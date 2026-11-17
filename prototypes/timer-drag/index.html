@@ -1,0 +1,2212 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>计时器拖动原型</title>
+    <style>
+      /* 布局：浅灰底上两张大圆角平面卡片，上面是计时器（电子 + 物理，共用同一个数），下面是手感参数。沿用 Learnis 的苹果风格令牌 */
+      :root {
+        --bg: #f5f5f7;
+        --card: #ffffff;
+        --fg: #1d1d1f;
+        --fg2: #6e6e73;
+        --fg3: #86868b;
+        --accent: #0071e3;
+        --accent-text: #0066cc;
+        --on-accent: #ffffff;
+        --sep: #d2d2d7;
+        --fill: rgba(0, 0, 0, 0.06);
+        --fill-hover: rgba(0, 0, 0, 0.09);
+        --plus: #248a3d;
+        --minus: #d70015;
+        --over: #ff9500;
+        /* 状态色在浅色、深色下都是「同色字 + 同色浅底」 */
+        --plus-bg: rgba(52, 199, 89, 0.14);
+        --minus-bg: rgba(255, 59, 48, 0.12);
+        --over-bg: rgba(255, 149, 0, 0.14);
+        --thumb: #ffffff;
+        --thumb-shadow: 0 1px 2px rgba(0, 0, 0, 0.06), 0 3px 10px rgba(0, 0, 0, 0.08);
+        /* 动效曲线：弹簧（略带回弹，用于滑块和出现）与缓出（用于宽度、颜色） */
+        --ease-spring: cubic-bezier(0.32, 1.28, 0.42, 1);
+        --ease-out: cubic-bezier(0.22, 0.8, 0.2, 1);
+        --font:
+          'SF Pro Text', -apple-system, BlinkMacSystemFont, 'Segoe UI Variable Text', 'Segoe UI',
+          'PingFang SC', 'Microsoft YaHei UI', 'Microsoft YaHei', system-ui, sans-serif;
+        --font-display:
+          'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI Variable Display',
+          'Segoe UI', 'PingFang SC', 'Microsoft YaHei UI', 'Microsoft YaHei', system-ui, sans-serif;
+        --font-mono: 'SF Mono', 'Cascadia Mono', Consolas, ui-monospace, monospace;
+        --row: 1.3em;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-theme='light']) {
+          --bg: #000000;
+          --card: #1d1d1f;
+          --fg: #f5f5f7;
+          --fg2: #a1a1a6;
+          --fg3: #6e6e73;
+          --accent: #0071e3;
+          --accent-text: #2997ff;
+          --on-accent: #ffffff;
+          --sep: #424245;
+          --fill: rgba(255, 255, 255, 0.1);
+          --fill-hover: rgba(255, 255, 255, 0.14);
+          --plus: #30d158;
+          --minus: #ff453a;
+          --over: #ff9f0a;
+          --plus-bg: rgba(48, 209, 88, 0.16);
+          --minus-bg: rgba(255, 69, 58, 0.16);
+          --over-bg: rgba(255, 159, 10, 0.16);
+          --thumb: #5a5a5e;
+          --thumb-shadow: none;
+          color-scheme: dark;
+        }
+      }
+      :root[data-theme='dark'] {
+        --bg: #000000;
+        --card: #1d1d1f;
+        --fg: #f5f5f7;
+        --fg2: #a1a1a6;
+        --fg3: #6e6e73;
+        --accent: #0071e3;
+        --accent-text: #2997ff;
+        --on-accent: #ffffff;
+        --sep: #424245;
+        --fill: rgba(255, 255, 255, 0.1);
+        --fill-hover: rgba(255, 255, 255, 0.14);
+        --plus: #30d158;
+        --minus: #ff453a;
+        --over: #ff9f0a;
+        --plus-bg: rgba(48, 209, 88, 0.16);
+        --minus-bg: rgba(255, 69, 58, 0.16);
+        --over-bg: rgba(255, 159, 10, 0.16);
+        --thumb: #5a5a5e;
+        --thumb-shadow: none;
+        color-scheme: dark;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+      [hidden] {
+        display: none !important;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--fg);
+        font-family: var(--font);
+        font-size: 15px;
+        line-height: 1.5;
+        padding-block: 40px 120px;
+        padding-left: max(16px, env(safe-area-inset-left, 0px));
+        padding-right: max(16px, env(safe-area-inset-right, 0px));
+      }
+      .wrap {
+        max-width: 980px;
+        margin: 0 auto;
+        display: grid;
+        gap: 24px;
+      }
+      header {
+        display: grid;
+        gap: 6px;
+        padding: 0 8px;
+      }
+      .head-row {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px 16px;
+      }
+      h1 {
+        margin: 0;
+        font-family: var(--font-display);
+        font-size: clamp(28px, 4vw, 40px);
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        text-wrap: balance;
+      }
+      h2 {
+        margin: 0;
+        font-family: var(--font-display);
+        font-size: 21px;
+        font-weight: 600;
+      }
+      .sub {
+        margin: 0;
+        font-size: 17px;
+        color: var(--fg2);
+        max-width: 65ch;
+      }
+      .card {
+        background: var(--card);
+        border-radius: 28px;
+        padding: clamp(20px, 4vw, 40px);
+        min-width: 0;
+      }
+
+      /* 计时器：左电子、右物理 */
+      .stage {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 32px;
+        align-items: center;
+      }
+      @media (max-width: 760px) {
+        .stage {
+          grid-template-columns: minmax(0, 1fr);
+        }
+      }
+      .dial {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+        min-width: 0;
+      }
+      .dial-label {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--fg3);
+        letter-spacing: 0.04em;
+      }
+
+      .digital {
+        display: flex;
+        align-items: center;
+        font-family: var(--font-display);
+        font-size: clamp(44px, 7.5vw, 84px);
+        font-weight: 300;
+        letter-spacing: -0.02em;
+        font-variant-numeric: tabular-nums;
+        line-height: var(--row);
+        user-select: none;
+        -webkit-user-select: none;
+      }
+      .col {
+        display: inline-flex;
+        border-radius: 14px;
+        cursor: grab;
+        touch-action: none;
+        transition: color 160ms ease;
+      }
+      .col:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+      }
+      .col.active {
+        color: var(--accent-text);
+      }
+      /* 按住拖动时整页都显示握拳的手 */
+      html.grabbing,
+      html.grabbing * {
+        cursor: grabbing !important;
+      }
+      .reel {
+        display: inline-block;
+        height: var(--row);
+        overflow: hidden;
+        -webkit-mask-image: linear-gradient(
+          to bottom,
+          transparent 0,
+          #000 15%,
+          #000 85%,
+          transparent 100%
+        );
+        mask-image: linear-gradient(to bottom, transparent 0, #000 15%, #000 85%, transparent 100%);
+      }
+      .strip {
+        display: flex;
+        flex-direction: column;
+        will-change: transform;
+      }
+      .strip > span {
+        height: var(--row);
+        text-align: center;
+      }
+      .colon {
+        position: relative;
+        top: -0.05em;
+        padding: 0 0.02em;
+      }
+
+      /* 这一轮调整的合计：数字像主计时器一样滚动，撤销用图标，跟着正在操作的那个表出现 */
+      .badge-slot {
+        display: flex;
+        justify-content: center;
+        min-height: 34px;
+      }
+      .badge {
+        --tone: var(--fg2);
+        --tone-bg: var(--fill);
+        display: inline-flex;
+        align-items: center;
+        height: 34px;
+        padding: 0 14px;
+        border-radius: 980px;
+        background: var(--tone-bg);
+        color: var(--tone);
+        font-family: var(--font-display);
+        font-size: 16px;
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
+        opacity: 0;
+        transform: translateY(6px) scale(0.9);
+        pointer-events: none;
+        transition:
+          opacity 0.24s var(--ease-out),
+          transform 0.55s var(--ease-spring),
+          background-color 0.3s ease,
+          color 0.3s ease,
+          padding 0.4s var(--ease-out);
+      }
+      .badge.on {
+        opacity: 1;
+        transform: none;
+        pointer-events: auto;
+      }
+      .badge.plus {
+        --tone: var(--plus);
+        --tone-bg: var(--plus-bg);
+      }
+      .badge.minus {
+        --tone: var(--minus);
+        --tone-bg: var(--minus-bg);
+      }
+      .badge.has-undo {
+        padding-right: 3px;
+      }
+      .b-sign {
+        position: relative;
+        display: inline-block;
+        width: 0.62em;
+        height: 1.25em;
+      }
+      .b-sign span {
+        position: absolute;
+        inset: 0;
+        text-align: center;
+        line-height: 1.25em;
+        opacity: 0;
+        transform: translateY(40%) scale(0.8);
+        transition:
+          opacity 0.2s ease,
+          transform 0.4s var(--ease-spring);
+      }
+      .b-sign span.on {
+        opacity: 1;
+        transform: none;
+      }
+      .b-slot {
+        display: inline-block;
+        width: 0.6em;
+        height: 1.25em;
+        overflow: hidden;
+        -webkit-mask-image: linear-gradient(
+          to bottom,
+          transparent 0,
+          #000 18%,
+          #000 82%,
+          transparent 100%
+        );
+        mask-image: linear-gradient(to bottom, transparent 0, #000 18%, #000 82%, transparent 100%);
+        transition:
+          width 0.4s var(--ease-out),
+          opacity 0.3s ease;
+      }
+      .b-slot.colon {
+        width: 0.3em;
+        text-align: center;
+        line-height: 1.2em;
+        -webkit-mask-image: none;
+        mask-image: none;
+      }
+      .b-slot.gone {
+        width: 0;
+        opacity: 0;
+      }
+      .b-strip {
+        display: flex;
+        flex-direction: column;
+        will-change: transform;
+      }
+      .b-strip span {
+        height: 1.25em;
+        line-height: 1.25em;
+        text-align: center;
+      }
+      .b-undo-wrap {
+        display: inline-flex;
+        width: 0;
+        overflow: hidden;
+        transition: width 0.4s var(--ease-out);
+      }
+      .badge.has-undo .b-undo-wrap {
+        width: 36px;
+      }
+      .b-undo {
+        display: grid;
+        place-items: center;
+        flex: none;
+        width: 28px;
+        height: 28px;
+        margin-left: 8px;
+        border: none;
+        border-radius: 50%;
+        background: transparent;
+        color: inherit;
+        cursor: pointer;
+        opacity: 0;
+        transform: scale(0.5) rotate(60deg);
+        transition:
+          opacity 0.25s ease,
+          transform 0.5s var(--ease-spring),
+          background-color 0.2s ease;
+      }
+      .badge.has-undo .b-undo {
+        opacity: 0.8;
+        transform: none;
+      }
+      .b-undo:hover {
+        opacity: 1;
+        background: color-mix(in srgb, currentColor 16%, transparent);
+      }
+      .b-undo:active {
+        transform: scale(0.88);
+      }
+      .b-undo:focus-visible {
+        outline: 2px solid currentColor;
+        outline-offset: 1px;
+      }
+      .b-undo svg {
+        width: 16px;
+        height: 16px;
+      }
+
+      /* 倒计时：超出目标后转为橙色的「额外学习」 */
+      .digital {
+        transition: color 0.35s ease;
+      }
+      .digital.over {
+        color: var(--over);
+      }
+      .over-sign {
+        display: inline-block;
+        width: 0;
+        opacity: 0;
+        overflow: hidden;
+        transition:
+          width 0.4s var(--ease-out),
+          opacity 0.3s ease;
+      }
+      .digital.over .over-sign {
+        width: 0.58em;
+        opacity: 1;
+      }
+
+      /* 分段切换：滑块用弹簧曲线滑到选中的那一项 */
+      .seg {
+        position: relative;
+        display: inline-grid;
+        grid-auto-flow: column;
+        grid-auto-columns: 1fr;
+        padding: 3px;
+        border-radius: 980px;
+        background: var(--fill);
+        isolation: isolate;
+      }
+      .seg-thumb {
+        position: absolute;
+        z-index: -1;
+        top: 3px;
+        bottom: 3px;
+        left: 3px;
+        width: calc((100% - 6px) / var(--n));
+        border-radius: 980px;
+        background: var(--thumb);
+        box-shadow: var(--thumb-shadow);
+        transform: translateX(calc(100% * var(--i)));
+        transition:
+          transform 0.5s var(--ease-spring),
+          background-color 0.3s ease;
+      }
+      .seg button {
+        display: grid;
+        place-items: center;
+        min-width: 40px;
+        height: 30px;
+        padding: 0 14px;
+        border: none;
+        border-radius: 980px;
+        background: transparent;
+        color: var(--fg2);
+        font: 600 13px var(--font);
+        cursor: pointer;
+        transition: color 0.25s ease;
+      }
+      .seg button:hover {
+        color: var(--fg);
+      }
+      .seg button[aria-checked='true'] {
+        color: var(--fg);
+      }
+      .seg button:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: -2px;
+      }
+      .seg svg {
+        width: 16px;
+        height: 16px;
+      }
+
+      /* 外观切换：新外观从按钮处以圆形展开；不支持的浏览器改为整体颜色渐变 */
+      ::view-transition-old(root),
+      ::view-transition-new(root) {
+        animation: none;
+        mix-blend-mode: normal;
+      }
+      html.theme-fade,
+      html.theme-fade * {
+        transition:
+          background-color 0.45s ease,
+          color 0.45s ease,
+          border-color 0.45s ease,
+          fill 0.45s ease,
+          stroke 0.45s ease !important;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .badge,
+        .b-sign span,
+        .b-slot,
+        .b-undo,
+        .b-undo-wrap,
+        .seg-thumb,
+        .over-sign {
+          transition-duration: 0.01ms !important;
+        }
+      }
+      .limit {
+        min-height: 20px;
+        font-size: 13px;
+        color: var(--fg3);
+        text-align: center;
+      }
+
+      /* 物理秒表：几何与 Learnis 现有的 AnalogStopwatch 一致 */
+      .analog {
+        width: min(260px, 100%);
+        aspect-ratio: 1;
+        touch-action: none;
+        cursor: grab;
+        user-select: none;
+        -webkit-user-select: none;
+      }
+      .analog.dragging {
+        cursor: grabbing;
+      }
+      .analog .face {
+        fill: var(--bg);
+        stroke: var(--sep);
+        stroke-width: 1;
+        transition: stroke 0.35s ease;
+      }
+      .analog .sector {
+        fill: var(--accent);
+        opacity: 0.16;
+        transition: opacity 0.4s ease;
+      }
+      .analog.no-sector .sector {
+        opacity: 0;
+      }
+      .analog.over .face {
+        stroke: var(--over);
+        stroke-width: 3;
+      }
+      .analog.over .hour-hand,
+      .analog.over .minute-hand,
+      .analog.over .second-hand {
+        stroke: var(--over);
+      }
+      .analog.over .cap {
+        fill: var(--over);
+      }
+      .analog-readout {
+        transition: color 0.35s ease;
+      }
+      .analog-readout.over {
+        color: var(--over);
+      }
+      .readout-label {
+        margin-right: 8px;
+        font-family: var(--font);
+        font-size: 15px;
+        font-weight: 400;
+        color: var(--fg2);
+      }
+      .analog .tick {
+        stroke: var(--fg3);
+        stroke-width: 1;
+        stroke-linecap: round;
+      }
+      .analog .tick-major {
+        stroke: var(--fg);
+        stroke-width: 2.2;
+        stroke-linecap: round;
+      }
+      .analog .num {
+        fill: var(--fg2);
+        font-family: var(--font-display);
+        font-size: 13px;
+        font-weight: 600;
+        text-anchor: middle;
+        dominant-baseline: central;
+      }
+      .analog .sub-face {
+        fill: var(--card);
+        stroke: var(--sep);
+      }
+      .analog .sub-label {
+        fill: var(--fg3);
+        font-size: 8px;
+        text-anchor: middle;
+      }
+      .analog .hand {
+        stroke-linecap: round;
+        transition: stroke 160ms ease;
+      }
+      .analog .hour-hand {
+        stroke: var(--fg);
+        stroke-width: 2.5;
+      }
+      .analog .minute-hand {
+        stroke: var(--fg);
+        stroke-width: 5;
+      }
+      .analog .second-hand {
+        stroke: var(--accent);
+        stroke-width: 1.6;
+      }
+      .analog .hand.active {
+        stroke: var(--accent-text);
+      }
+      .analog .second-hand.active {
+        stroke-width: 2.6;
+      }
+      .analog .cap {
+        fill: var(--accent);
+      }
+      .analog .cap-inner {
+        fill: var(--bg);
+      }
+      .analog-readout {
+        font-family: var(--font-display);
+        font-size: 24px;
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
+      }
+
+      /* 今天的数字 */
+      .facts {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 16px;
+        margin-top: 32px;
+        padding-top: 24px;
+        border-top: 1px solid var(--sep);
+      }
+      @media (max-width: 560px) {
+        .facts {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+      .fact {
+        display: grid;
+        gap: 2px;
+        min-width: 0;
+      }
+      .fact-label {
+        font-size: 13px;
+        color: var(--fg3);
+      }
+      .fact-value {
+        font-size: 17px;
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
+      }
+      .controls {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 12px 16px;
+        margin-top: 24px;
+      }
+      .hint {
+        margin: 0;
+        color: var(--fg2);
+        flex: 1 1 280px;
+        min-width: 0;
+      }
+
+      .pill {
+        height: 40px;
+        padding: 0 20px;
+        border: none;
+        border-radius: 980px;
+        background: var(--fill);
+        color: var(--fg);
+        font: 600 15px var(--font);
+        cursor: pointer;
+        transition: background-color 160ms ease;
+      }
+      .pill:hover {
+        background: var(--fill-hover);
+      }
+      .pill:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+      }
+      .pill.primary {
+        background: var(--accent);
+        color: var(--on-accent);
+      }
+
+      /* 手感参数 */
+      .params-head {
+        display: grid;
+        gap: 4px;
+        margin-bottom: 8px;
+      }
+      /* 四组参数横向并排，窄屏自动换行 */
+      .param-cols {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 8px 28px;
+        align-items: start;
+      }
+      .param-col {
+        min-width: 0;
+      }
+      .param-group {
+        margin: 12px 0 0;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--fg3);
+        letter-spacing: 0.04em;
+      }
+      .param {
+        display: grid;
+        gap: 4px;
+        padding: 12px 0;
+        border-bottom: 1px solid var(--sep);
+      }
+      .param:last-child {
+        border-bottom: none;
+      }
+      .param-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 8px;
+      }
+      .param-name {
+        font-weight: 600;
+      }
+      .param output {
+        color: var(--fg2);
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+      }
+      .param input[type='range'] {
+        width: 100%;
+        margin: 4px 0 0;
+        accent-color: var(--accent);
+      }
+      .param-ends {
+        display: flex;
+        justify-content: space-between;
+        font-size: 12px;
+        color: var(--fg3);
+      }
+      .param-desc {
+        font-size: 12px;
+        color: var(--fg3);
+      }
+      .preset {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 12px;
+        margin-top: 20px;
+      }
+      .preset code {
+        flex: 1 1 320px;
+        min-width: 0;
+        padding: 10px 14px;
+        border-radius: 12px;
+        background: var(--fill);
+        font-family: var(--font-mono);
+        font-size: 13px;
+        overflow-wrap: anywhere;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <div class="head-row">
+          <h1>计时器拖动原型</h1>
+          <div class="seg" id="theme" role="radiogroup" aria-label="外观" style="--n: 3; --i: 2">
+            <span class="seg-thumb" aria-hidden="true"></span>
+            <button
+              type="button"
+              role="radio"
+              data-mode="light"
+              aria-label="浅色"
+              title="浅色"
+              aria-checked="false"
+            >
+              <svg viewBox="0 0 20 20" aria-hidden="true">
+                <circle
+                  cx="10"
+                  cy="10"
+                  r="3.6"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                ></circle>
+                <path
+                  d="M10 1.8v1.8M10 16.4v1.8M1.8 10h1.8M16.4 10h1.8M4.2 4.2l1.3 1.3M14.5 14.5l1.3 1.3M4.2 15.8l1.3-1.3M14.5 5.5l1.3-1.3"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                  stroke-linecap="round"
+                ></path>
+              </svg>
+            </button>
+            <button
+              type="button"
+              role="radio"
+              data-mode="dark"
+              aria-label="深色"
+              title="深色"
+              aria-checked="false"
+            >
+              <svg viewBox="0 0 20 20" aria-hidden="true">
+                <path
+                  d="M16.5 12.3A7 7 0 0 1 7.7 3.5a7 7 0 1 0 8.8 8.8Z"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                  stroke-linejoin="round"
+                ></path>
+              </svg>
+            </button>
+            <button
+              type="button"
+              role="radio"
+              data-mode="system"
+              aria-label="跟随系统"
+              title="跟随系统"
+              aria-checked="true"
+            >
+              <svg viewBox="0 0 20 20" aria-hidden="true">
+                <circle
+                  cx="10"
+                  cy="10"
+                  r="7"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                ></circle>
+                <path d="M10 3a7 7 0 0 1 0 14Z" fill="currentColor"></path>
+              </svg>
+            </button>
+          </div>
+        </div>
+        <p class="sub">
+          在数字上按住上下拖，或者抓住秒表的指针转。按住时计时先停住；松手就从调好的数接着走，数字顺着你最后的动作滑进正常走秒，中间不停顿、不跳。两个计时器是同一个数，拖哪个都行。
+        </p>
+      </header>
+
+      <section class="card" aria-label="计时器">
+        <div class="stage">
+          <div class="dial">
+            <span class="dial-label" id="digital-label">剩余</span>
+            <div class="digital" id="digital">
+              <span class="over-sign" aria-hidden="true">+</span>
+              <div class="col" data-unit="3600" tabindex="0" role="slider" aria-label="小时"></div>
+              <span class="colon" aria-hidden="true">:</span>
+              <div class="col" data-unit="60" tabindex="0" role="slider" aria-label="分钟"></div>
+              <span class="colon" aria-hidden="true">:</span>
+              <div class="col" data-unit="1" tabindex="0" role="slider" aria-label="秒"></div>
+            </div>
+            <div class="badge-slot" id="badge-digital"></div>
+            <span class="limit" id="limit"></span>
+          </div>
+
+          <div class="dial">
+            <span class="dial-label">物理秒表</span>
+            <svg class="analog" id="analog" viewBox="0 0 260 260" role="img" aria-label="物理秒表">
+              <circle class="face" cx="130" cy="130" r="118"></circle>
+              <path class="sector" id="sector" d=""></path>
+              <g id="ticks"></g>
+              <g id="nums"></g>
+              <circle class="sub-face" cx="130" cy="174" r="24"></circle>
+              <g id="sub-ticks"></g>
+              <line
+                class="hand hour-hand"
+                id="hour-hand"
+                x1="130"
+                y1="174"
+                x2="130"
+                y2="156"
+              ></line>
+              <text class="sub-label" x="130" y="187">小时</text>
+              <line
+                class="hand minute-hand"
+                id="minute-hand"
+                x1="130"
+                y1="130"
+                x2="130"
+                y2="56"
+              ></line>
+              <line
+                class="hand second-hand"
+                id="second-hand"
+                x1="130"
+                y1="148"
+                x2="130"
+                y2="30"
+              ></line>
+              <circle class="cap" cx="130" cy="130" r="5"></circle>
+              <circle class="cap-inner" cx="130" cy="130" r="2"></circle>
+            </svg>
+            <span class="analog-readout" id="analog-readout"
+              ><span class="readout-label" id="analog-label">剩余</span
+              ><span id="analog-value">01:12:00</span></span
+            >
+            <div class="badge-slot" id="badge-analog"></div>
+          </div>
+        </div>
+
+        <div class="facts">
+          <div class="fact">
+            <span class="fact-label">今天目标</span
+            ><span class="fact-value" id="f-target">2:05:00</span>
+          </div>
+          <div class="fact">
+            <span class="fact-label">计时记录</span
+            ><span class="fact-value" id="f-sessions">0:53:00</span>
+          </div>
+          <div class="fact">
+            <span class="fact-label">手动修正</span
+            ><span class="fact-value" id="f-correction">0:00</span>
+          </div>
+          <div class="fact">
+            <span class="fact-label">今天合计</span
+            ><span class="fact-value" id="f-total">0:53:00</span>
+          </div>
+        </div>
+
+        <div class="controls">
+          <button class="pill primary" id="toggle" type="button">暂停</button>
+          <div class="seg" id="mode" role="radiogroup" aria-label="显示方式" style="--n: 2; --i: 0">
+            <span class="seg-thumb" aria-hidden="true"></span>
+            <button type="button" role="radio" data-mode="countDown" aria-checked="true">
+              倒计时
+            </button>
+            <button type="button" role="radio" data-mode="countUp" aria-checked="false">
+              正计时
+            </button>
+          </div>
+          <p class="hint" id="clock-hint">
+            模拟现在是 15:00，计时正在走。今天合计最少 0，最多是今天已经过去的时长。
+          </p>
+        </div>
+      </section>
+
+      <section class="card" aria-label="手感参数">
+        <div class="params-head">
+          <h2>手感参数</h2>
+          <p class="sub">
+            默认值就是软件里「阻尼滚轮」的预设。边拖边调，调出更顺手的数值时，点「复制」把这一行记下来。
+          </p>
+        </div>
+        <div id="params"></div>
+        <div class="preset">
+          <code id="preset-text"></code>
+          <button class="pill" id="copy" type="button">复制</button>
+          <button class="pill" id="reset" type="button">恢复默认</button>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      (() => {
+        'use strict';
+        const $ = (id) => document.getElementById(id);
+        const SIM_CLOCK = 15 * 3600; // 模拟「现在」是下午 3 点（今天已过去的秒数）
+        const TARGET = 2 * 3600 + 5 * 60; // 今天目标 2 小时 5 分钟
+        let viewMode = 'countDown'; // 'countDown' 倒计时（剩余）/ 'countUp' 正计时（今天已学）
+        // 把「今天已学」换成表上显示的数：倒计时显示剩余，超出目标后显示额外学习
+        function toDisplay(learned) {
+          if (viewMode === 'countUp') return { value: learned, over: false };
+          const rem = TARGET - learned;
+          return rem >= 0 ? { value: rem, over: false } : { value: -rem, over: true };
+        }
+        // 表上的数往上拨 1 秒时「今天已学」怎么变：正计时、额外学习 +1；倒计时的剩余 −1
+        const displaySign = (learned) =>
+          viewMode === 'countDown' && TARGET - learned >= 0 ? -1 : 1;
+
+        const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+        const reducedMotion =
+          window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+        // ---------- 手感参数：原型里可调，定下来后写成「阻尼滚轮」预设 ----------
+        // 每个滑块两端都标了含义；速度类往左都是更慢。鼠标拖动和滚轮分开调
+        const PARAM_GROUPS = { drag: '鼠标拖动', wheel: '滚轮', feel: '手感', tick: '走秒' };
+        const PARAM_DEFS = [
+          {
+            group: 'drag',
+            key: 'speedSec',
+            name: '秒的速度',
+            desc: '数字移动的距离和鼠标移动距离之比，100% 就是完全跟手',
+            min: 10,
+            max: 150,
+            step: 1,
+            value: 99,
+            ends: ['慢', '快'],
+            fmt: (v) => v + '%',
+          },
+          {
+            group: 'drag',
+            key: 'speedMin',
+            name: '分的速度',
+            desc: '同上，管「分」这一栏和分针',
+            min: 10,
+            max: 150,
+            step: 1,
+            value: 60,
+            ends: ['慢', '快'],
+            fmt: (v) => v + '%',
+          },
+          {
+            group: 'drag',
+            key: 'speedHour',
+            name: '时的速度',
+            desc: '同上，管「时」这一栏和小时指针',
+            min: 10,
+            max: 150,
+            step: 1,
+            value: 105,
+            ends: ['慢', '快'],
+            fmt: (v) => v + '%',
+          },
+          {
+            group: 'drag',
+            key: 'accel',
+            name: '快拖加速',
+            desc: '拖得很快时额外多走几格，0 就是不加速（只对电子计时器）',
+            min: 0,
+            max: 2,
+            step: 0.1,
+            value: 0.5,
+            ends: ['不加速', '加速多'],
+            fmt: (v) => v.toFixed(1),
+          },
+          {
+            group: 'wheel',
+            key: 'wheelSec',
+            name: '滚轮 · 秒',
+            desc: '滚轮每滚一格，秒走几格',
+            min: 0.1,
+            max: 3,
+            step: 0.1,
+            value: 0.7,
+            ends: ['慢', '快'],
+            fmt: (v) => v.toFixed(1) + ' 格',
+          },
+          {
+            group: 'wheel',
+            key: 'wheelMin',
+            name: '滚轮 · 分',
+            desc: '滚轮每滚一格，分走几格',
+            min: 0.1,
+            max: 3,
+            step: 0.1,
+            value: 0.7,
+            ends: ['慢', '快'],
+            fmt: (v) => v.toFixed(1) + ' 格',
+          },
+          {
+            group: 'wheel',
+            key: 'wheelHour',
+            name: '滚轮 · 时',
+            desc: '滚轮每滚一格，时走几格',
+            min: 0.1,
+            max: 3,
+            step: 0.1,
+            value: 0.5,
+            ends: ['慢', '快'],
+            fmt: (v) => v.toFixed(1) + ' 格',
+          },
+          {
+            group: 'feel',
+            key: 'weight',
+            name: '重量感',
+            desc: '数字追上鼠标要多久，越大越沉',
+            min: 0,
+            max: 500,
+            step: 1,
+            value: 80,
+            ends: ['轻', '沉'],
+            fmt: (v) => v + ' ms',
+          },
+          {
+            group: 'feel',
+            key: 'glide',
+            name: '松手后滑行',
+            desc: '甩出去以后还能滑多远',
+            min: 0,
+            max: 100,
+            step: 1,
+            value: 35,
+            ends: ['马上停', '滑得远'],
+            fmt: (v) => String(v),
+          },
+          {
+            group: 'feel',
+            key: 'fling',
+            name: '甩出力度',
+            desc: '同样的甩速，转出去多少',
+            min: 0.2,
+            max: 3,
+            step: 0.1,
+            value: 0.6,
+            ends: ['弱', '强'],
+            fmt: (v) => v.toFixed(1) + '×',
+          },
+          {
+            group: 'tick',
+            key: 'tick',
+            name: '走秒动画',
+            desc: '平时每秒数字滚动的时长',
+            min: 0,
+            max: 1500,
+            step: 1,
+            value: 1397,
+            ends: ['干脆', '舒缓'],
+            fmt: (v) => v + ' ms',
+          },
+        ];
+        const STORE_KEY = 'learnis-drag-prototype-params-v2';
+        const params = {};
+        PARAM_DEFS.forEach((d) => {
+          params[d.key] = d.value;
+        });
+        try {
+          const saved = JSON.parse(localStorage.getItem(STORE_KEY) || 'null');
+          if (saved)
+            PARAM_DEFS.forEach((d) => {
+              if (typeof saved[d.key] === 'number')
+                params[d.key] = clamp(saved[d.key], d.min, d.max);
+            });
+        } catch (e) {
+          /* 读不到就用默认值 */
+        }
+        function saveParams() {
+          try {
+            localStorage.setItem(STORE_KEY, JSON.stringify(params));
+          } catch (e) {
+            /* 存不了也不影响使用 */
+          }
+        }
+        // 松手后滑行 0–100 换算成衰减时间常数 τ（秒）：0 约 0.06 秒，50 约 0.3 秒，100 约 1.5 秒
+        const tau = () => 0.06 * Math.pow(1.5 / 0.06, params.glide / 100);
+        // 没有速度、只是吸附到整格时用的时间常数（越沉吸附得越慢）
+        const snapTau = () => 0.1 + (params.weight / 1000) * 0.4;
+        // 重量感：显示值追目标的时间常数（秒）
+        const followTau = () => params.weight / 2500;
+        // 时 / 分 / 秒各自的速度（数字移动距离 ÷ 鼠标移动距离）
+        const speedFor = (unit) =>
+          (unit >= 3600 ? params.speedHour : unit >= 60 ? params.speedMin : params.speedSec) / 100;
+        // 滚轮每滚一格，时 / 分 / 秒各走几格
+        const wheelFor = (unit) =>
+          unit >= 3600 ? params.wheelHour : unit >= 60 ? params.wheelMin : params.wheelSec;
+        const tickMs = () => (reducedMotion ? 0 : params.tick);
+
+        // ---------- 今天的数据（模拟后端）：今天合计 = 计时记录 + 手动修正 ----------
+        const pageStart = performance.now();
+        const model = {
+          sessionsBefore: 53 * 60, // 计时记录里已经算好的秒数
+          runningSince: pageStart, // 正在计时的起点（performance.now 毫秒），暂停时为 null
+          correction: 0, // 今天这个计划的手动修正（秒，可正可负，每天一笔净值）
+        };
+        // 今天已经过去的秒数（模拟时钟从 15:00 开始走）
+        const elapsedToday = (t) => SIM_CLOCK + (t - pageStart) / 1000;
+        // 计时记录（秒，带小数；计时中随时间增长）
+        const sessions = (t) =>
+          model.sessionsBefore +
+          (model.runningSince === null ? 0 : (t - model.runningSince) / 1000);
+        const committedTotal = (t) => sessions(t) + model.correction;
+        function setRunning(on, t) {
+          if (on && model.runningSince === null) model.runningSince = t;
+          if (!on && model.runningSince !== null) {
+            model.sessionsBefore = sessions(t);
+            model.runningSince = null;
+          }
+        }
+
+        // ---------- 手感引擎：只处理「一个数」（这次拨动了多少秒），和外形无关 ----------
+        // mode：idle 静止 / drag 按住拖（计时暂停）/ settle 松手后收尾。
+        // 松手那一刻就记下修正、计时接着走；显示上还没走完的那一点（offset）带着松手时的速度平滑归零，
+        // 和正常走秒叠在一起，所以不会先停一下再走
+        const engine = {
+          mode: 'idle',
+          unit: 1, // 正在拨的部件一格是多少秒：秒 1、分 60、时 3600
+          hand: 0, // 拖动中：手拨到的秒数（相对暂停那一刻的合计）
+          offset: 0, // 显示比实际合计多出来的秒数：拖动时追着 hand，松手后逐渐归零
+          vel: 0, // offset 的速度（秒 / 秒），保证松手前后速度连续
+          dir: 0, // 最后一次移动的方向：1 往上加，-1 往下减
+          omega: 0, // 松手后收尾的弹簧系数
+          landing: 0, // 这次松手记下的修正量
+          owner: null, // 'digital' 或 'analog'
+          part: null, // 具体部件，用来高亮
+          samples: [], // 最近 100ms 的 [时间, hand]，用来算松手时手的速度
+          wasRunning: false, // 按住前计时是否在走；松手后据此接着走
+          limit: 0, // 撞到的边界：-1 下限 / 1 上限
+          limitAt: -1e9,
+        };
+        // 今天合计不低于 0，不超过今天已经过去的时长（相对当前合计）
+        function offsetBounds(t) {
+          const base = committedTotal(t);
+          return { lo: -base, hi: elapsedToday(t) - base };
+        }
+        function clampOffset(v, t) {
+          const b = offsetBounds(t);
+          if (v <= b.lo) {
+            engine.limit = -1;
+            engine.limitAt = t;
+            return b.lo;
+          }
+          if (v >= b.hi) {
+            engine.limit = 1;
+            engine.limitAt = t;
+            return b.hi;
+          }
+          return v;
+        }
+        // 临界阻尼弹簧：x 是离目标的距离、v 是速度，按精确解推进 dt 秒
+        function springStep(x, v, omega, dt) {
+          const e = Math.exp(-omega * dt);
+          const k = (v + omega * x) * dt;
+          return [(x + k) * e, (v - omega * k) * e];
+        }
+        // 按住：计时先停住（显示不走，后台也不计时）；上一次还在收尾的话，从当前位置接着拖
+        function grab(owner, part, unit, t) {
+          if (engine.mode !== 'drag') {
+            engine.wasRunning = model.runningSince !== null;
+            setRunning(false, t);
+          }
+          engine.mode = 'drag';
+          engine.owner = owner;
+          engine.part = part;
+          engine.unit = unit;
+          engine.hand = engine.offset;
+          engine.dir = 0;
+          engine.samples = [[t, engine.hand]];
+        }
+        function dragBy(seconds, t) {
+          if (seconds !== 0) engine.dir = Math.sign(seconds);
+          engine.hand = clampOffset(engine.hand + seconds, t);
+          engine.samples.push([t, engine.hand]);
+          while (engine.samples.length > 2 && t - engine.samples[0][0] > 100)
+            engine.samples.shift();
+        }
+        // 顺着方向取整：往上拨落到上面那一格，往下拨落到下面那一格；没有方向时取最近的
+        function roundToward(x, dir) {
+          if (dir > 0) return Math.ceil(x - 1e-6);
+          if (dir < 0) return Math.floor(x + 1e-6);
+          return Math.round(x);
+        }
+        let onLand = () => {};
+        // 松手：按手的速度估算会滑到哪，顺着最后的方向落到整格；当场记修正、计时接着走
+        function release(t) {
+          const s = engine.samples;
+          let handVel = 0; // 秒 / 秒
+          if (s.length >= 2) {
+            const [t0, o0] = s[0];
+            const [t1, o1] = s[s.length - 1];
+            if (t - t1 < 80 && t1 > t0) handVel = (o1 - o0) / ((t1 - t0) / 1000);
+          }
+          const unit = engine.unit;
+          const natural = engine.hand + handVel * params.fling * tau();
+          const moving = Math.abs(engine.vel) > 0.02 * unit ? Math.sign(engine.vel) : 0;
+          const dir = Math.sign(handVel) || moving || engine.dir;
+          const b = offsetBounds(t);
+          let landing = roundToward(natural / unit, dir) * unit;
+          if (landing < b.lo) {
+            landing = Math.ceil(b.lo);
+            engine.limit = -1;
+            engine.limitAt = t;
+          }
+          if (landing > b.hi) {
+            landing = Math.floor(b.hi);
+            engine.limit = 1;
+            engine.limitAt = t;
+          }
+          const resume = engine.wasRunning;
+          engine.wasRunning = false;
+          engine.landing = landing;
+          if (landing !== 0) onLand(landing, t);
+          if (resume) setRunning(true, t);
+          beginSettle(landing);
+        }
+        // 实际合计刚加上 shift：显示位置不变，剩余 offset 相应减掉，再带着当前速度归零
+        function beginSettle(shift) {
+          engine.offset -= shift;
+          engine.hand = 0;
+          const x = engine.offset;
+          const v = engine.vel;
+          // 朝目标运动时：弹簧系数不小于 |v|/|x|，起步速度不变，而且不会冲过头、不回弹；
+          // 也不小于 1/滑行时间，免得最后一点拖太久，数字长时间停在差一点没到的位置
+          let omega = 1 / snapTau();
+          if (x * v < 0 && Math.abs(v) > 0.02 * engine.unit) {
+            omega = clamp(Math.max(Math.abs(v) / Math.abs(x), 1 / tau()), 0.4, 400);
+          }
+          engine.omega = omega;
+          engine.mode = 'settle';
+        }
+        // 滚轮、方向键：直接记一笔，数字从当前位置滑过去（计时不停）
+        function nudge(owner, part, unit, steps, t) {
+          if (engine.mode === 'drag') return;
+          const b = offsetBounds(t);
+          let land = steps * unit;
+          if (land < b.lo) {
+            land = Math.ceil(b.lo);
+            engine.limit = -1;
+            engine.limitAt = t;
+          }
+          if (land > b.hi) {
+            land = Math.floor(b.hi);
+            engine.limit = 1;
+            engine.limitAt = t;
+          }
+          if (land === 0) return;
+          engine.owner = owner;
+          engine.part = part;
+          engine.unit = unit;
+          engine.landing = land;
+          onLand(land, t);
+          beginSettle(land);
+        }
+        // 每帧推进：拖动时显示带重量感地追手；收尾时剩余部分平滑归零
+        let lastStep = performance.now();
+        function stepEngine(t) {
+          const dt = Math.min(0.05, Math.max(0, (t - lastStep) / 1000));
+          lastStep = t;
+          if (engine.mode === 'drag') {
+            if (params.weight <= 0) {
+              const instant = dt > 0 ? (engine.hand - engine.offset) / dt : 0;
+              engine.vel = engine.vel * 0.5 + instant * 0.5;
+              engine.offset = engine.hand;
+            } else {
+              // 重量感：临界阻尼弹簧追手，匀速拖动时大约落后「重量感」那么多毫秒
+              const [x, v] = springStep(
+                engine.offset - engine.hand,
+                engine.vel,
+                2000 / params.weight,
+                dt,
+              );
+              engine.offset = engine.hand + x;
+              engine.vel = v;
+            }
+          } else if (engine.mode === 'settle') {
+            const [x, v] = springStep(engine.offset, engine.vel, engine.omega, dt);
+            engine.offset = x;
+            engine.vel = v;
+            if (Math.abs(x) < 0.0015 && Math.abs(v) < 0.02) {
+              engine.mode = 'idle';
+              engine.offset = 0;
+              engine.vel = 0;
+              engine.owner = null;
+              engine.part = null;
+            }
+          }
+        }
+
+        const mod = (a, n) => ((a % n) + n) % n;
+        const pad2 = (n) => String(n).padStart(2, '0');
+        const fmtClock = (sec) => {
+          const s = Math.max(0, Math.floor(sec));
+          return `${pad2(Math.floor(s / 3600))}:${pad2(Math.floor(s / 60) % 60)}:${pad2(s % 60)}`;
+        };
+        const fmtDelta = (sec) => {
+          if (Math.round(sec) === 0) return '±0:00';
+          const s = Math.abs(Math.round(sec));
+          const h = Math.floor(s / 3600);
+          const body =
+            h > 0
+              ? `${h}:${pad2(Math.floor(s / 60) % 60)}:${pad2(s % 60)}`
+              : `${Math.floor(s / 60)}:${pad2(s % 60)}`;
+          return (sec < 0 ? '−' : '+') + body;
+        };
+
+        // ---------- 电子计时器：每位数字是一条竖着的数字带，像里程表一样滚 ----------
+        // 每栏两位：[这一位一格是多少秒, 进制]
+        const REELS = {
+          3600: [
+            [36000, 10],
+            [3600, 10],
+          ],
+          60: [
+            [600, 6],
+            [60, 10],
+          ],
+          1: [
+            [10, 6],
+            [1, 10],
+          ],
+        };
+        const reels = [];
+        const cols = Array.from(document.querySelectorAll('#digital .col'));
+        cols.forEach((col) => {
+          REELS[col.dataset.unit].forEach(([u, b]) => {
+            const reel = document.createElement('span');
+            reel.className = 'reel';
+            const strip = document.createElement('span');
+            strip.className = 'strip';
+            // 末尾多放一个 0，从 9 滚到 0（或 5 滚到 0）时无缝衔接
+            for (let i = 0; i <= b; i++) {
+              const d = document.createElement('span');
+              d.textContent = String(i % b);
+              strip.appendChild(d);
+            }
+            reel.appendChild(strip);
+            col.appendChild(reel);
+            reels.push({ strip, u, b, extra: 0, extraVel: 0, shown: 0 });
+          });
+        });
+
+        // shownBase：带走秒动画的已保存合计；engine.offset：正在拨动的秒数。
+        // 正在拨某一栏（一格 U 秒）时，这一栏及更高位按 U 连续滚、在最后一格里进位；更低位不受拨动影响，照常走秒
+        // 标签换字时淡入，不直接跳
+        const labelCache = {};
+        function setLabel(id, text) {
+          if (labelCache[id] === text) return;
+          const first = labelCache[id] === undefined;
+          labelCache[id] = text;
+          const el = $(id);
+          el.textContent = text;
+          if (!first && !reducedMotion) {
+            el.animate(
+              [
+                { opacity: 0, transform: 'translateY(4px)' },
+                { opacity: 1, transform: 'none' },
+              ],
+              { duration: 320, easing: 'cubic-bezier(0.22, 0.8, 0.2, 1)' },
+            );
+          }
+        }
+        // 切换倒计时 / 正计时时，每一位从旧数字沿最短方向滚到新数字，不直接跳过去
+        let morphPending = false;
+        let lastDigitalAt = performance.now();
+        let lastOver = null;
+        function renderDigital(shownBase) {
+          const now = performance.now();
+          const dt = Math.min(0.05, Math.max(0, (now - lastDigitalAt) / 1000));
+          lastDigitalAt = now;
+          // 换成表上显示的数：倒计时显示剩余（拨动方向和「今天已学」相反），超出目标后显示额外学习
+          const shown = toDisplay(shownBase + engine.offset);
+          let base = shownBase;
+          let off = engine.offset;
+          if (viewMode === 'countDown') {
+            base = shown.over ? shownBase - TARGET : TARGET - shownBase;
+            off = shown.over ? engine.offset : -engine.offset;
+          }
+          let U = engine.mode === 'idle' ? 1 : engine.unit;
+          const total = base + off;
+          let high = total;
+          if (U > 1) {
+            const carry = clamp(mod(base, U) - (U - 1), 0, 1);
+            high = (Math.floor(base / U) + carry) * U + off;
+            // 拨到接近 0 时低位已经不够减，改成按合计整体显示
+            if (high < 0) {
+              U = 1;
+              high = total;
+            }
+          }
+          high = Math.max(0, high);
+          for (const r of reels) {
+            const v = r.u >= U ? high : Math.max(0, base);
+            const w = r.u >= U ? U : 1;
+            const whole = Math.floor(v / r.u);
+            const frac = clamp((v - whole * r.u - (r.u - w)) / w, 0, 1);
+            const pos = mod(whole, r.b) + frac;
+            if (morphPending) r.extra = mod(r.shown - pos + r.b / 2, r.b) - r.b / 2;
+            if (r.extra !== 0 || r.extraVel !== 0) {
+              const [x, vel] = springStep(r.extra, r.extraVel, 13, dt);
+              const done = Math.abs(x) < 0.001 && Math.abs(vel) < 0.01;
+              r.extra = done ? 0 : x;
+              r.extraVel = done ? 0 : vel;
+            }
+            r.shown = mod(pos + r.extra, r.b);
+            r.strip.style.transform = `translateY(${(-r.shown * 1.3).toFixed(4)}em)`;
+          }
+          morphPending = false;
+          if (shown.over !== lastOver) {
+            $('digital').classList.toggle('over', shown.over);
+            lastOver = shown.over;
+          }
+          setLabel(
+            'digital-label',
+            viewMode === 'countUp' ? '今天已学' : shown.over ? '额外学习' : '剩余',
+          );
+          cols.forEach((col) => {
+            col.classList.toggle(
+              'active',
+              engine.owner === 'digital' && engine.part === Number(col.dataset.unit),
+            );
+          });
+        }
+
+        // 拖动：往上拖加、往下拖减。按一格数字的高度换算：速度 100% 时数字正好跟着手走；
+        // 时 / 分 / 秒各有各的速度；拖得很快时可以额外多走几格（快拖加速）
+        let digitalDrag = null;
+        let wheelAcc = 0;
+        let digitalWheelUnit = 1;
+        cols.forEach((col) => {
+          const unit = Number(col.dataset.unit);
+          col.addEventListener('pointerdown', (e) => {
+            if (e.button !== 0) return;
+            e.preventDefault();
+            try {
+              col.setPointerCapture(e.pointerId);
+            } catch (err) {
+              /* 没有真实指针（如脚本合成的事件）时跳过 */
+            }
+            grab('digital', unit, unit, performance.now());
+            const rowPx = reels[0].strip.firstChild.getBoundingClientRect().height || 100;
+            // 数字跟着手走；倒计时下表上显示的是剩余，换算成「今天已学」时方向相反
+            const sign = displaySign(committedTotal(performance.now()) + engine.offset);
+            digitalDrag = { col, y: e.clientY, t: e.timeStamp, rowPx, sign };
+          });
+          col.addEventListener('pointermove', (e) => {
+            if (!digitalDrag || digitalDrag.col !== col) return;
+            const dy = e.clientY - digitalDrag.y;
+            const dt = Math.max(1, e.timeStamp - digitalDrag.t);
+            digitalDrag.y = e.clientY;
+            digitalDrag.t = e.timeStamp;
+            const speed = Math.abs(dy) / dt; // 像素 / 毫秒
+            const boost = 1 + params.accel * Math.max(0, speed - 0.5);
+            dragBy(
+              (-dy / digitalDrag.rowPx) * speedFor(unit) * boost * unit * digitalDrag.sign,
+              performance.now(),
+            );
+          });
+          const end = () => {
+            if (!digitalDrag || digitalDrag.col !== col) return;
+            digitalDrag = null;
+            release(performance.now());
+          };
+          col.addEventListener('pointerup', end);
+          col.addEventListener('pointercancel', end);
+          // 滚轮：往上滚加、往下滚减；鼠标滚轮一格约 100 像素，每格走几格由「滚轮」那组参数决定。
+          // 触控板是很多小步，攒够一整格再走
+          col.addEventListener(
+            'wheel',
+            (e) => {
+              e.preventDefault();
+              const px =
+                e.deltaMode === 1 ? e.deltaY * 33 : e.deltaMode === 2 ? e.deltaY * 100 : e.deltaY;
+              if (wheelAcc !== 0 && digitalWheelUnit !== unit) wheelAcc = 0;
+              digitalWheelUnit = unit;
+              wheelAcc += (-px / 100) * wheelFor(unit);
+              while (Math.abs(wheelAcc) >= 1) {
+                const step = wheelAcc > 0 ? 1 : -1;
+                wheelAcc -= step;
+                const now = performance.now();
+                nudge(
+                  'digital',
+                  unit,
+                  unit,
+                  step * displaySign(committedTotal(now) + engine.offset),
+                  now,
+                );
+              }
+            },
+            { passive: false },
+          );
+          // 键盘：上下键一格，Page Up / Down 十格
+          col.addEventListener('keydown', (e) => {
+            const map = { ArrowUp: 1, ArrowDown: -1, PageUp: 10, PageDown: -10 };
+            if (!(e.key in map)) return;
+            e.preventDefault();
+            const now = performance.now();
+            nudge(
+              'digital',
+              unit,
+              unit,
+              map[e.key] * displaySign(committedTotal(now) + engine.offset),
+              now,
+            );
+          });
+        });
+
+        // ---------- 物理秒表：主表盘一圈 60 分钟，秒针一圈 60 秒，小表盘一圈 12 小时 ----------
+        const SVG_NS = 'http://www.w3.org/2000/svg';
+        const C = 130;
+        const R = 118;
+        const SUB = { x: C, y: C + 44, r: 24 };
+        const svg = $('analog');
+        const hands = { hour: $('hour-hand'), minute: $('minute-hand'), second: $('second-hand') };
+        // 每个指针转一圈是多少秒、停下时吸附到多少秒一格
+        const HAND = {
+          second: { cycle: 60, unit: 1 },
+          minute: { cycle: 3600, unit: 60 },
+          hour: { cycle: 43200, unit: 3600 },
+        };
+        function polar(deg, radius, cx = C, cy = C) {
+          const rad = ((deg - 90) * Math.PI) / 180;
+          return { x: cx + radius * Math.cos(rad), y: cy + radius * Math.sin(rad) };
+        }
+        function line(parent, a, b, cls) {
+          const el = document.createElementNS(SVG_NS, 'line');
+          el.setAttribute('x1', a.x.toFixed(2));
+          el.setAttribute('y1', a.y.toFixed(2));
+          el.setAttribute('x2', b.x.toFixed(2));
+          el.setAttribute('y2', b.y.toFixed(2));
+          el.setAttribute('class', cls);
+          parent.appendChild(el);
+        }
+        for (let i = 0; i < 60; i++) {
+          const major = i % 5 === 0;
+          line(
+            $('ticks'),
+            polar(i * 6, R - (major ? 18 : 12)),
+            polar(i * 6, R - 6),
+            major ? 'tick-major' : 'tick',
+          );
+        }
+        for (let i = 0; i < 12; i++) {
+          const p = polar(i * 30, R - 34);
+          const text = document.createElementNS(SVG_NS, 'text');
+          text.setAttribute('x', p.x.toFixed(2));
+          text.setAttribute('y', p.y.toFixed(2));
+          text.setAttribute('class', 'num');
+          text.textContent = i === 0 ? '60' : String(i * 5);
+          $('nums').appendChild(text);
+          line(
+            $('sub-ticks'),
+            polar(i * 30, SUB.r - (i % 3 === 0 ? 7 : 5), SUB.x, SUB.y),
+            polar(i * 30, SUB.r - 2, SUB.x, SUB.y),
+            'tick',
+          );
+        }
+        function setHand(el, from, to) {
+          el.setAttribute('x1', from.x.toFixed(2));
+          el.setAttribute('y1', from.y.toFixed(2));
+          el.setAttribute('x2', to.x.toFixed(2));
+          el.setAttribute('y2', to.y.toFixed(2));
+        }
+        const handAngles = { hour: 0, minute: 0, second: 0 };
+        // 倒计时的剩余扇形（最多一小时），和 Learnis 现有秒表一致
+        function sectorPath(angleDeg, radius) {
+          if (angleDeg <= 0) return '';
+          if (angleDeg >= 359.99)
+            return `M ${C} ${C - radius} A ${radius} ${radius} 0 1 1 ${C - 0.01} ${C - radius} Z`;
+          const end = polar(angleDeg, radius);
+          const large = angleDeg > 180 ? 1 : 0;
+          return `M ${C} ${C} L ${C} ${C - radius} A ${radius} ${radius} 0 ${large} 1 ${end.x.toFixed(2)} ${end.y.toFixed(2)} Z`;
+        }
+        // 切换倒计时 / 正计时时，三根针各自沿最短方向转到新位置
+        let analogMorph = null;
+        function beginModeMorph() {
+          morphPending = true;
+          analogMorph = { from: { ...handAngles }, t0: performance.now() };
+        }
+        let lastSector = '';
+        function renderAnalog(learned) {
+          const shown = toDisplay(learned);
+          const s = Math.max(0, shown.value);
+          const target = {
+            minute: (mod(s, 3600) / 3600) * 360,
+            second: (mod(s, 60) / 60) * 360,
+            hour: (((s / 3600) % 12) / 12) * 360,
+          };
+          let k = 1;
+          if (analogMorph) {
+            const x = clamp((performance.now() - analogMorph.t0) / 650, 0, 1);
+            k = 1 - Math.pow(1 - x, 3);
+          }
+          for (const key of Object.keys(target)) {
+            handAngles[key] = analogMorph
+              ? target[key] + (mod(analogMorph.from[key] - target[key] + 180, 360) - 180) * (1 - k)
+              : target[key];
+          }
+          if (k >= 1) analogMorph = null;
+          const countDown = viewMode === 'countDown' && !shown.over;
+          if (countDown) {
+            const d = sectorPath((Math.min(s, 3600) / 3600) * 360, R - 14);
+            if (d !== lastSector) {
+              lastSector = d;
+              $('sector').setAttribute('d', d);
+            }
+          }
+          svg.classList.toggle('no-sector', !countDown);
+          svg.classList.toggle('over', shown.over);
+          $('analog-readout').classList.toggle('over', shown.over);
+          setLabel('analog-label', viewMode === 'countUp' ? '已学' : shown.over ? '额外' : '剩余');
+          setText('analog-value', (shown.over ? '+' : '') + fmtClock(s));
+          setHand(hands.minute, { x: C, y: C }, polar(handAngles.minute, 74));
+          setHand(hands.second, polar(handAngles.second + 180, 18), polar(handAngles.second, 100));
+          setHand(
+            hands.hour,
+            { x: SUB.x, y: SUB.y },
+            polar(handAngles.hour, SUB.r - 6, SUB.x, SUB.y),
+          );
+          for (const k of Object.keys(hands)) {
+            hands[k].classList.toggle('active', engine.owner === 'analog' && engine.part === k);
+          }
+          svg.classList.toggle('dragging', engine.owner === 'analog' && engine.mode === 'drag');
+        }
+
+        // 抓指针：点在小表盘上抓小时指针，否则抓离点击方向最近的分针或秒针；指针跟着鼠标转
+        function svgPoint(e) {
+          const rect = svg.getBoundingClientRect();
+          return {
+            x: ((e.clientX - rect.left) * 260) / rect.width,
+            y: ((e.clientY - rect.top) * 260) / rect.height,
+          };
+        }
+        const angleOf = (p, cx, cy) =>
+          mod((Math.atan2(p.y - cy, p.x - cx) * 180) / Math.PI + 90, 360);
+        const angleGap = (a, b) => Math.abs(mod(a - b + 180, 360) - 180);
+        let analogDrag = null;
+        svg.addEventListener('pointerdown', (e) => {
+          if (e.button !== 0) return;
+          e.preventDefault();
+          const p = svgPoint(e);
+          let part;
+          if (Math.hypot(p.x - SUB.x, p.y - SUB.y) <= SUB.r + 12) {
+            part = 'hour';
+          } else {
+            const a = angleOf(p, C, C);
+            part =
+              angleGap(a, handAngles.minute) <= angleGap(a, handAngles.second)
+                ? 'minute'
+                : 'second';
+          }
+          const center = part === 'hour' ? SUB : { x: C, y: C };
+          try {
+            svg.setPointerCapture(e.pointerId);
+          } catch (err) {
+            /* 没有真实指针（如脚本合成的事件）时跳过 */
+          }
+          grab('analog', part, HAND[part].unit, performance.now());
+          // 指针显示的是表上的数（倒计时为剩余），换算成「今天已学」时按显示方式取方向
+          const sign = displaySign(committedTotal(performance.now()) + engine.offset);
+          analogDrag = { part, center, angle: angleOf(p, center.x, center.y), sign };
+        });
+        svg.addEventListener('pointermove', (e) => {
+          if (!analogDrag) return;
+          const p = svgPoint(e);
+          const a = angleOf(p, analogDrag.center.x, analogDrag.center.y);
+          const d = mod(a - analogDrag.angle + 180, 360) - 180; // 跨过 12 点时也连续
+          analogDrag.angle = a;
+          // 速度 100% 时指针正好跟着鼠标转；调低后指针比鼠标转得慢，像更沉的指针
+          const hand = HAND[analogDrag.part];
+          dragBy((d / 360) * hand.cycle * speedFor(hand.unit) * analogDrag.sign, performance.now());
+        });
+        const endAnalog = () => {
+          if (!analogDrag) return;
+          analogDrag = null;
+          release(performance.now());
+        };
+        svg.addEventListener('pointerup', endAnalog);
+        svg.addEventListener('pointercancel', endAnalog);
+
+        // ---------- 走秒：显示值用临界阻尼弹簧追着「已保存的合计（取整秒）」，起步和停下都是柔和的 ----------
+        // 走秒动画时长 ≥ 1 秒时，上一秒还没走完下一秒就来了，数字会一直缓缓地走
+        const shown = { value: Math.floor(committedTotal(pageStart)), vel: 0 };
+        let lastShownAt = pageStart;
+        function updateShown(t) {
+          const dt = Math.min(0.05, Math.max(0, (t - lastShownAt) / 1000));
+          lastShownAt = t;
+          const target = Math.floor(committedTotal(t) + 1e-6);
+          const d = tickMs();
+          if (d <= 0) {
+            shown.value = target;
+            shown.vel = 0;
+            return;
+          }
+          // 临界阻尼弹簧大约在 4.74/ω 秒走完 95%，让它等于设定的走秒动画时长
+          const [x, v] = springStep(shown.value - target, shown.vel, 4.74 / (d / 1000), dt);
+          shown.value = target + x;
+          shown.vel = v;
+        }
+        // 拨动的秒数记成手动修正的那一刻，显示整体平移，避免数字跳一下
+        function rebaseShown(delta) {
+          shown.value += delta;
+        }
+
+        // ---------- 一轮调整：从第一次动手开始，停手约 5 秒没再碰就结束 ----------
+        // 先调分钟再调秒、调过头再往回拨，都算同一轮。正在操作的那个表下面出现徽标，显示这一轮的合计，松手后可以整轮撤销
+        const SESSION_MS = 5000;
+        const session = { total: 0, touched: false, undone: false, lastAt: -1e9, owner: 'digital' };
+        // 松手（或滚轮、方向键）时记一笔手动修正，并计入这一轮（按住期间计时停住，所以合计正好是调好的数）
+        onLand = (d) => {
+          session.touched = true;
+          session.undone = false;
+          if (d === 0) return;
+          model.correction += d;
+          rebaseShown(d);
+          session.total += d;
+        };
+        // 整轮退回去；数字从现在的位置平滑滑回去（计时不停）
+        function undoSession() {
+          const d = session.total;
+          if (d === 0 || engine.mode === 'drag') return;
+          model.correction -= d;
+          rebaseShown(-d);
+          engine.offset += d;
+          engine.unit = d % 3600 === 0 ? 3600 : d % 60 === 0 ? 60 : 1;
+          engine.owner = null;
+          engine.part = null;
+          engine.landing = -d;
+          engine.omega = (1 / snapTau()) * 0.7;
+          engine.mode = 'settle';
+          session.total = 0;
+          session.undone = true;
+          session.lastAt = performance.now();
+        }
+
+        // ---------- 徽标：符号 + 时:分:秒，每一位是一条数字带，各自滚到新数字；位数变化时宽度平滑伸缩 ----------
+        const UNDO_ICON =
+          '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7.5 4.5 3.8 8.2l3.7 3.7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>' +
+          '<path d="M4.3 8.2h7.2a4.3 4.3 0 0 1 0 8.6H9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path></svg>';
+        const SLOT_KEYS = ['h10', 'h1', 'c1', 'm10', 'm1', 'c2', 's10', 's1'];
+        function makeBadge(host) {
+          const root = document.createElement('div');
+          root.className = 'badge zero';
+          root.setAttribute('role', 'status');
+          const sign = document.createElement('span');
+          sign.className = 'b-sign';
+          sign.setAttribute('aria-hidden', 'true');
+          const signs = {};
+          for (const [tone, ch] of [
+            ['plus', '+'],
+            ['minus', '−'],
+            ['zero', '±'],
+          ]) {
+            const s = document.createElement('span');
+            s.textContent = ch;
+            sign.appendChild(s);
+            signs[tone] = s;
+          }
+          root.appendChild(sign);
+          const slots = {};
+          for (const key of SLOT_KEYS) {
+            const el = document.createElement('span');
+            el.setAttribute('aria-hidden', 'true');
+            if (key[0] === 'c') {
+              el.className = 'b-slot colon';
+              el.textContent = ':';
+              slots[key] = { el };
+            } else {
+              el.className = 'b-slot';
+              const strip = document.createElement('span');
+              strip.className = 'b-strip';
+              for (let i = 0; i <= 10; i++) {
+                const d = document.createElement('span');
+                d.textContent = String(i % 10);
+                strip.appendChild(d);
+              }
+              el.appendChild(strip);
+              slots[key] = { el, strip, digit: 0, pos: 0, vel: 0, target: 0, drawn: NaN };
+            }
+            root.appendChild(el);
+          }
+          const wrap = document.createElement('span');
+          wrap.className = 'b-undo-wrap';
+          const undo = document.createElement('button');
+          undo.type = 'button';
+          undo.className = 'b-undo';
+          undo.title = '撤销';
+          undo.tabIndex = -1;
+          undo.setAttribute('aria-label', '撤销这一轮调整');
+          undo.innerHTML = UNDO_ICON;
+          undo.addEventListener('click', undoSession);
+          wrap.appendChild(undo);
+          root.appendChild(wrap);
+          host.appendChild(root);
+          return {
+            root,
+            signs,
+            slots,
+            undo,
+            value: -1,
+            tone: '',
+            shown: false,
+            canUndo: false,
+            aria: '',
+          };
+        }
+        const badges = {
+          digital: makeBadge($('badge-digital')),
+          analog: makeBadge($('badge-analog')),
+        };
+
+        // 拆成各位数字；数值变大时数字带往上滚，变小时往下滚。instant 用于刚出现时直接到位
+        function setBadgeValue(b, seconds, instant) {
+          const s = Math.abs(Math.round(seconds));
+          if (s === b.value && !instant) return;
+          const up = s > b.value;
+          b.value = s;
+          const h = Math.floor(s / 3600);
+          const m = Math.floor(s / 60) % 60;
+          const sec = s % 60;
+          const digits = {
+            h10: Math.floor(h / 10) % 10,
+            h1: h % 10,
+            m10: Math.floor(m / 10),
+            m1: m % 10,
+            s10: Math.floor(sec / 10),
+            s1: sec % 10,
+          };
+          const visible = {
+            h10: h >= 10,
+            h1: h > 0,
+            c1: h > 0,
+            m10: h > 0 || m >= 10,
+            m1: true,
+            c2: true,
+            s10: true,
+            s1: true,
+          };
+          for (const key of SLOT_KEYS) {
+            const slot = b.slots[key];
+            slot.el.classList.toggle('gone', !visible[key]);
+            if (!slot.strip) continue;
+            const d = digits[key];
+            if (instant) {
+              slot.digit = d;
+              slot.pos = slot.target = d;
+              slot.vel = 0;
+              continue;
+            }
+            if (d === slot.digit) continue;
+            slot.target += up ? mod(d - slot.digit, 10) : -mod(slot.digit - d, 10);
+            slot.digit = d;
+          }
+        }
+        function stepBadge(b, dt) {
+          for (const key of SLOT_KEYS) {
+            const slot = b.slots[key];
+            if (!slot.strip) continue;
+            if (Math.abs(slot.target - slot.pos) < 0.001 && Math.abs(slot.vel) < 0.01) {
+              slot.pos = slot.target = mod(slot.target, 10);
+              slot.vel = 0;
+            } else {
+              const [x, v] = springStep(slot.pos - slot.target, slot.vel, 20, dt);
+              slot.pos = slot.target + x;
+              slot.vel = v;
+            }
+            const p = mod(slot.pos, 10);
+            if (p !== slot.drawn) {
+              slot.drawn = p;
+              slot.strip.style.transform = `translateY(${(-p * 1.25).toFixed(4)}em)`;
+            }
+          }
+        }
+        let lastBadgeAt = performance.now();
+        function updateBadges(t) {
+          const dt = Math.min(0.05, Math.max(0, (t - lastBadgeAt) / 1000));
+          lastBadgeAt = t;
+          const dragging = engine.mode === 'drag';
+          if (engine.owner) session.owner = engine.owner;
+          if (engine.mode !== 'idle') session.lastAt = t;
+          const linger = session.total === 0 ? 1200 : SESSION_MS;
+          if (engine.mode === 'idle' && t - session.lastAt > linger) {
+            session.total = 0;
+            session.touched = false;
+            session.undone = false;
+          }
+          if (dragging) session.undone = false;
+          // 正在拖的那一下按那一栏取整，加上这一轮已经记下的
+          const live = dragging
+            ? roundToward(engine.hand / engine.unit, engine.dir) * engine.unit
+            : 0;
+          const sum = session.undone ? 0 : session.total + live;
+          const visible = dragging
+            ? session.touched || Math.abs(live) >= 0.5
+            : session.touched || session.undone;
+          const tone = Math.round(sum) === 0 ? 'zero' : sum > 0 ? 'plus' : 'minus';
+          const canUndo = visible && !dragging && !session.undone && session.total !== 0;
+          for (const [owner, b] of Object.entries(badges)) {
+            const on = visible && owner === session.owner;
+            if (on) setBadgeValue(b, sum, !b.shown);
+            if (on !== b.shown) {
+              b.root.classList.toggle('on', on);
+              b.shown = on;
+            }
+            if (on && tone !== b.tone) {
+              b.root.classList.remove('plus', 'minus', 'zero');
+              b.root.classList.add(tone);
+              for (const k of Object.keys(b.signs)) b.signs[k].classList.toggle('on', k === tone);
+              b.tone = tone;
+            }
+            const showUndo = on && canUndo;
+            if (showUndo !== b.canUndo) {
+              b.root.classList.toggle('has-undo', showUndo);
+              b.undo.tabIndex = showUndo ? 0 : -1;
+              b.canUndo = showUndo;
+            }
+            if (on) {
+              const aria =
+                tone === 'zero'
+                  ? '这一轮没有改动'
+                  : `这一轮${tone === 'plus' ? '增加' : '减少'}了 ${fmtDelta(sum).slice(1)}`;
+              if (aria !== b.aria) {
+                b.aria = aria;
+                b.root.setAttribute('aria-label', aria);
+              }
+            }
+            stepBadge(b, dt);
+          }
+        }
+
+        // ---------- 手感参数面板 ----------
+        // 每组一列，四组横向并排（窄屏自动换行）
+        const paramInputs = {};
+        const groupCols = {};
+        const colsWrap = document.createElement('div');
+        colsWrap.className = 'param-cols';
+        $('params').appendChild(colsWrap);
+        PARAM_DEFS.forEach((d) => {
+          if (!groupCols[d.group]) {
+            const col = document.createElement('section');
+            col.className = 'param-col';
+            const heading = document.createElement('h3');
+            heading.className = 'param-group';
+            heading.textContent = PARAM_GROUPS[d.group];
+            col.appendChild(heading);
+            colsWrap.appendChild(col);
+            groupCols[d.group] = col;
+          }
+          const id = `p-${d.key}`;
+          const row = document.createElement('div');
+          row.className = 'param';
+          row.innerHTML =
+            `<div class="param-head"><label class="param-name" for="${id}">${d.name}</label><output for="${id}"></output></div>` +
+            `<input type="range" id="${id}" min="${d.min}" max="${d.max}" step="${d.step}">` +
+            `<div class="param-ends" aria-hidden="true"><span>${d.ends[0]}</span><span>${d.ends[1]}</span></div>` +
+            `<span class="param-desc">${d.desc}</span>`;
+          const input = row.querySelector('input');
+          const out = row.querySelector('output');
+          input.value = String(params[d.key]);
+          out.textContent = d.fmt(params[d.key]);
+          input.addEventListener('input', () => {
+            params[d.key] = Number(input.value);
+            out.textContent = d.fmt(params[d.key]);
+            saveParams();
+            updatePreset();
+          });
+          paramInputs[d.key] = { input, out };
+          groupCols[d.group].appendChild(row);
+        });
+        const presetText = () =>
+          PARAM_DEFS.map((d) => `${d.name} ${d.fmt(params[d.key])}`).join(' · ');
+        function updatePreset() {
+          $('preset-text').textContent = presetText();
+        }
+        updatePreset();
+        $('reset').addEventListener('click', () => {
+          PARAM_DEFS.forEach((d) => {
+            params[d.key] = d.value;
+            paramInputs[d.key].input.value = String(d.value);
+            paramInputs[d.key].out.textContent = d.fmt(d.value);
+          });
+          saveParams();
+          updatePreset();
+        });
+        $('copy').addEventListener('click', () => {
+          const btn = $('copy');
+          const flash = (text) => {
+            btn.textContent = text;
+            setTimeout(() => {
+              btn.textContent = '复制';
+            }, 1800);
+          };
+          const fallback = () => {
+            const range = document.createRange();
+            range.selectNodeContents($('preset-text'));
+            const sel = window.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(range);
+            flash('已选中，按 Ctrl+C');
+          };
+          try {
+            navigator.clipboard.writeText(presetText()).then(() => flash('已复制'), fallback);
+          } catch (e) {
+            fallback();
+          }
+        });
+
+        // ---------- 分段切换：选中项变化时，滑块用弹簧曲线滑过去 ----------
+        function syncSeg(seg, value) {
+          Array.from(seg.querySelectorAll('button')).forEach((b, i) => {
+            const on = b.dataset.mode === value;
+            b.setAttribute('aria-checked', String(on));
+            if (on) seg.style.setProperty('--i', String(i));
+          });
+        }
+
+        // ---------- 外观：浅色 / 深色 / 跟随系统（只为预览原型，选项记在本机浏览器） ----------
+        const THEME_KEY = 'learnis-drag-prototype-theme';
+        let themeMode = 'system';
+        try {
+          themeMode = localStorage.getItem(THEME_KEY) || 'system';
+        } catch (e) {
+          /* 读不到就跟随系统 */
+        }
+        function applyTheme(mode) {
+          if (mode === 'light' || mode === 'dark') document.documentElement.dataset.theme = mode;
+          else delete document.documentElement.dataset.theme;
+          syncSeg($('theme'), mode);
+        }
+        applyTheme(themeMode);
+        $('theme').addEventListener('click', (e) => {
+          const btn = e.target.closest('button');
+          if (!btn || btn.dataset.mode === themeMode) return;
+          themeMode = btn.dataset.mode;
+          try {
+            localStorage.setItem(THEME_KEY, themeMode);
+          } catch (err) {
+            /* 存不了也能用 */
+          }
+          if (reducedMotion) {
+            applyTheme(themeMode);
+            return;
+          }
+          if (!document.startViewTransition) {
+            // 不支持视图过渡：整体颜色渐变
+            document.documentElement.classList.add('theme-fade');
+            applyTheme(themeMode);
+            setTimeout(() => document.documentElement.classList.remove('theme-fade'), 500);
+            return;
+          }
+          // 新外观从按钮处以圆形展开，盖过旧外观
+          const r = btn.getBoundingClientRect();
+          const x = r.left + r.width / 2;
+          const y = r.top + r.height / 2;
+          const radius = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
+          const vt = document.startViewTransition(() => applyTheme(themeMode));
+          vt.ready
+            .then(() => {
+              document.documentElement.animate(
+                {
+                  clipPath: [
+                    `circle(0px at ${x}px ${y}px)`,
+                    `circle(${radius}px at ${x}px ${y}px)`,
+                  ],
+                },
+                {
+                  duration: 700,
+                  easing: 'cubic-bezier(0.22, 0.8, 0.2, 1)',
+                  pseudoElement: '::view-transition-new(root)',
+                },
+              );
+            })
+            .catch(() => {});
+        });
+
+        // ---------- 倒计时 / 正计时 ----------
+        const MODE_KEY = 'learnis-drag-prototype-mode';
+        try {
+          viewMode = localStorage.getItem(MODE_KEY) === 'countUp' ? 'countUp' : 'countDown';
+        } catch (e) {
+          /* 默认倒计时 */
+        }
+        syncSeg($('mode'), viewMode);
+        $('mode').addEventListener('click', (e) => {
+          const btn = e.target.closest('button');
+          if (!btn || btn.dataset.mode === viewMode) return;
+          viewMode = btn.dataset.mode;
+          syncSeg($('mode'), viewMode);
+          beginModeMorph();
+          try {
+            localStorage.setItem(MODE_KEY, viewMode);
+          } catch (err) {
+            /* 存不了也能用 */
+          }
+        });
+
+        // ---------- 开始 / 暂停 ----------
+        $('toggle').addEventListener('click', () => {
+          setRunning(model.runningSince === null, performance.now());
+        });
+
+        // ---------- 每帧刷新 ----------
+        const textCache = new Map();
+        function setText(id, text) {
+          if (textCache.get(id) === text) return;
+          textCache.set(id, text);
+          $(id).textContent = text;
+        }
+        function updatePanel(t, v) {
+          const adjusting = engine.mode === 'drag';
+          // 按住期间计时临时停住，按钮和提示仍按按住前的状态显示
+          const running = model.runningSince !== null || (adjusting && engine.wasRunning);
+          setText('f-sessions', fmtClock(sessions(t)));
+          setText('f-correction', model.correction === 0 ? '0:00' : fmtDelta(model.correction));
+          setText('f-total', fmtClock(committedTotal(t)));
+          setText('toggle', running ? '暂停' : '开始');
+          $('toggle').classList.toggle('primary', !running);
+          const clock = Math.floor(elapsedToday(t));
+          setText(
+            'clock-hint',
+            `模拟现在是 ${pad2(Math.floor(clock / 3600))}:${pad2(Math.floor(clock / 60) % 60)}，` +
+              (adjusting
+                ? '正在调整，计时先停住，松手就从调好的数接着走。'
+                : running
+                  ? '计时正在走。'
+                  : '计时已暂停，暂停时也能拖。') +
+              '今天合计最少 0，最多是今天已经过去的时长。',
+          );
+          // 撞到边界时的说明
+          const atLimit = t - engine.limitAt < 1600;
+          setText(
+            'limit',
+            !atLimit
+              ? ''
+              : engine.limit < 0
+                ? '今天合计不能少于 0'
+                : '今天合计不能超过今天已经过去的时长',
+          );
+        }
+        let lastSecond = -1;
+        function frame(t) {
+          stepEngine(t);
+          // 按住期间计时是暂停的，合计不变，显示自然停住；松手后合计接着走，剩余的 offset 平滑归零
+          updateShown(t);
+          renderDigital(shown.value);
+          const v = committedTotal(t) + engine.offset;
+          renderAnalog(v);
+          updatePanel(t, v);
+          updateBadges(t);
+          document.documentElement.classList.toggle('grabbing', engine.mode === 'drag');
+          const sec = Math.floor(v);
+          if (sec !== lastSecond) {
+            lastSecond = sec;
+            cols.forEach((col) => col.setAttribute('aria-valuetext', fmtClock(v)));
+          }
+          requestAnimationFrame(frame);
+        }
+        requestAnimationFrame(frame);
+      })();
+    </script>
+  </body>
+</html>
