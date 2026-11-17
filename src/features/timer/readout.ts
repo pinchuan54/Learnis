@@ -11,6 +11,18 @@ export interface Readout {
 }
 
 /**
+ * 表上的数往上拨 1 秒时，「今天已学」怎么变：倒计时的剩余往上拨等于少学（−1），
+ * 正计时、额外学习、没有目标时都是多学（+1）。
+ */
+export function displaySign(
+  display: TimerDisplay,
+  targetSeconds: number,
+  studiedSeconds: number,
+): 1 | -1 {
+  return display === 'countDown' && targetSeconds > 0 && studiedSeconds <= targetSeconds ? -1 : 1;
+}
+
+/**
  * 计算计时器显示的内容。
  * - 倒计时：显示「目标 - 已学」；归零后转为显示超出的时长（额外学习）
  * - 正计时：显示今天已学

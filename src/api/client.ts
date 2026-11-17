@@ -93,6 +93,11 @@ export const api = {
   getTimerStatus: () => call<TimerStatus>('get_timer_status'),
   startTimer: (planId: number) => call<TimerStatus>('start_timer', { planId }),
   stopTimer: () => call<TimerStatus>('stop_timer'),
+  /** 拖动计时器后记一笔手动修正；resume 为真时接着开始新的一段计时 */
+  addCorrection: (planId: number, seconds: number, resume: boolean) =>
+    call<TimerStatus>('add_correction', { planId, seconds, resume }),
+  clearCorrection: (planId: number, date: string) =>
+    call<void>('clear_correction', { planId, date }),
   addSession: (input: SessionInput) => call<Session>('add_session', { input }),
   updateSession: (id: number, input: SessionInput) =>
     call<Session>('update_session', { id, input }),
