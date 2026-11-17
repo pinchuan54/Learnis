@@ -1,3 +1,55 @@
+/* ---------- 左侧分类导航 ---------- */
+
+.layout {
+  display: grid;
+  grid-template-columns: 180px minmax(0, 1fr);
+  gap: var(--space-12);
+  align-items: start;
+}
+
+/* 内容较长时停在原位，不随页面滚走 */
+.sidebar {
+  position: sticky;
+  top: calc(var(--nav-height) + var(--space-14));
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.navItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  height: 40px;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-md);
+  color: var(--color-text-secondary);
+  font-size: var(--text-body);
+  text-decoration: none;
+  transition:
+    color var(--duration-fast) var(--ease-standard),
+    background-color var(--duration-fast) var(--ease-standard);
+}
+
+.navItem:hover {
+  color: var(--color-text);
+  background: var(--color-fill-hover);
+}
+
+.navItem[aria-current],
+.navItem[aria-current]:hover {
+  color: var(--color-text);
+  background: var(--color-fill);
+  font-weight: 600;
+}
+
+.navItem svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* ---------- 分区 ---------- */
+
 .section + .section {
   margin-top: var(--space-14);
 }

@@ -16,7 +16,7 @@ const router = createHashRouter([
       { path: 'today', element: <DayPage /> },
       { path: 'day/:date', element: <DayPage /> },
       { path: 'plans', element: <PlansPage /> },
-      { path: 'settings', element: <SettingsPage /> },
+      { path: 'settings/:section?', element: <SettingsPage /> },
     ],
   },
 ]);
