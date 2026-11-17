@@ -218,6 +218,8 @@ export interface Settings {
   longSessionMinutes: number;
   /** 月历下方显示图例（各颜色的含义） */
   showCalendarLegend: boolean;
+  /** 顶部导航左上角显示应用名称（关闭后只显示标志） */
+  showAppName: boolean;
 }
 
 /** 等待用户处理的倒计时归零提醒 */

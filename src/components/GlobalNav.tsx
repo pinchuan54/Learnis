@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router';
-import { usePlans, useTimerStatus } from '../api/hooks';
+import { usePlans, useSettings, useTimerStatus } from '../api/hooks';
 import { useNow } from '../hooks/useNow';
 import { formatClock } from '../lib/format';
 import { planColorVar } from '../lib/planColors';
@@ -36,12 +36,15 @@ const NAV_ITEMS = [
  */
 export function GlobalNav() {
   const { pathname } = useLocation();
+  const { data: settings } = useSettings();
 
   return (
     <header className={styles.nav} data-tauri-drag-region>
       <div className={styles.brand}>
         <LogoMark className={styles.logo} />
-        <span>Learnis</span>
+        <span className={styles.name} aria-hidden={settings?.showAppName === false}>
+          Learnis
+        </span>
       </div>
 
       <nav className={styles.links} aria-label="主导航" data-tauri-drag-region>
