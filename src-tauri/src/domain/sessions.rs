@@ -10,7 +10,7 @@ use rusqlite::{Connection, OptionalExtension, Row, params};
 
 use super::Ctx;
 use super::model::{Session, SessionInput, SessionSource};
-use super::plans;
+use super::{corrections, plans};
 use crate::error::{AppError, AppResult};
 use crate::time::{day_start_ms, next_day, split_by_day};
 
@@ -200,8 +200,9 @@ pub fn list_overlapping(
     Ok(sessions)
 }
 
-/// 统计 `[from, to]` 日期范围内，各计划每天的学习秒数。
+/// 统计 `[from, to]` 日期范围内，各计划每天的学习秒数：学习记录加上手动修正。
 /// 跨日界线的记录按日界线切开分别计入；正在进行的计时算到当前时刻。
+/// 修正后小于 0 的（例如扣过时间后又删了学习记录）按 0 计。
 pub fn studied_by_plan_day(
     conn: &Connection,
     ctx: &Ctx,
@@ -221,10 +222,17 @@ pub fn studied_by_plan_day(
             *totals.entry((session.plan_id, date)).or_default() += ms;
         }
     }
-    Ok(totals
+    let mut seconds: HashMap<(i64, NaiveDate), i64> = totals
         .into_iter()
         .map(|(key, ms)| (key, ms / 1000))
-        .collect())
+        .collect();
+    for (key, correction) in corrections::by_plan_day(conn, from, to)? {
+        *seconds.entry(key).or_default() += correction;
+    }
+    for value in seconds.values_mut() {
+        *value = (*value).max(0);
+    }
+    Ok(seconds)
 }
 
 #[cfg(test)]

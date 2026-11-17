@@ -98,6 +98,16 @@ pub struct Session {
     pub note: String,
 }
 
+/// 手动修正：在计时器上拖动调整的学习时长，每个计划每天一笔净值
+#[derive(Debug, Clone, Serialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct Correction {
+    pub plan_id: i64,
+    pub date: String,
+    /// 秒，正数是多学、负数是少学
+    pub seconds: i64,
+}
+
 /// 补录 / 修改学习记录的输入
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -314,6 +324,8 @@ pub struct DayDetail {
     pub today: String,
     pub plans: Vec<DayPlanEntry>,
     pub sessions: Vec<Session>,
+    /// 这天的手动修正
+    pub corrections: Vec<Correction>,
     pub todos: Vec<Todo>,
     pub adjustments: Vec<Adjustment>,
 }

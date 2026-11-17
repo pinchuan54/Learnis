@@ -9,7 +9,10 @@ use crate::error::{AppError, AppResult};
 
 /// 按顺序排列的迁移脚本；第 n 个脚本执行后 `user_version` 为 n。
 /// 只能在末尾追加，已发布的脚本不可修改。
-const MIGRATIONS: &[&str] = &[include_str!("migrations/0001_init.sql")];
+const MIGRATIONS: &[&str] = &[
+    include_str!("migrations/0001_init.sql"),
+    include_str!("migrations/0002_corrections.sql"),
+];
 
 /// 应用唯一的数据库连接。命令之间通过互斥锁串行访问。
 pub struct Db(Mutex<Connection>);

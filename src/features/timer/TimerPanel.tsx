@@ -1,21 +1,16 @@
-import { useState } from 'react';
-import {
-  usePlans,
-  useSettings,
-  useStartTimer,
-  useStopTimer,
-  useTimerStatus,
-} from '../../api/hooks';
+import { useEffect, useRef, useState } from 'react';
+import { api } from '../../api/client';
+import { useClock, usePlans, useSettings, useTimerStatus } from '../../api/hooks';
 import type { DayPlanEntry, TimerDisplay, TimerStyle } from '../../api/types';
 import { PauseIcon, PlayIcon } from '../../components/icons';
 import { SegmentedControl } from '../../components/ui/SegmentedControl';
-import { useToast } from '../../components/ui/toast/ToastContext';
-import { useNow } from '../../hooks/useNow';
+import { zonedTimeToMs } from '../../lib/dates';
 import { formatMinutes, formatSeconds } from '../../lib/format';
 import { planColorVar } from '../../lib/planColors';
+import { AdjustBadge } from './AdjustBadge';
 import { AnalogStopwatch } from './AnalogStopwatch';
 import { DigitalDisplay } from './DigitalDisplay';
-import { computeReadout } from './readout';
+import { useDialController } from './dial/useDialController';
 import styles from './TimerPanel.module.css';
 
 const DISPLAY_OPTIONS: { value: TimerDisplay; label: string }[] = [
@@ -28,18 +23,24 @@ const STYLE_OPTIONS: { value: TimerStyle; label: string }[] = [
   { value: 'analog', label: '物理秒表' },
 ];
 
-/** 今天的计时器：选计划、开始 / 暂停、正计时 / 倒计时、两种外观 */
+/** 按住拖动计时器时，整页显示握拳的手 */
+const GRABBING_CLASS = 'dial-grabbing';
+
+/**
+ * 今天的计时器：选计划、开始 / 暂停、正计时 / 倒计时、两种外观。
+ * 两种外观都能拖动调整今天已学（#36），显示由拖动控制器按帧驱动。
+ */
 export function TimerPanel({ entries }: { entries: DayPlanEntry[] }) {
   const { data: status } = useTimerStatus();
   const { data: settings } = useSettings();
   const { data: plans } = usePlans();
-  const startTimer = useStartTimer();
-  const stopTimer = useStopTimer();
-  const toast = useToast();
+  const { data: clock } = useClock();
 
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [display, setDisplay] = useState<TimerDisplay | null>(null);
   const [style, setStyle] = useState<TimerStyle | null>(null);
+  const [busy, setBusy] = useState(false);
+  const summaryRef = useRef<HTMLParagraphElement>(null);
 
   const running = status?.running ?? null;
   const choices = plans ?? [];
@@ -54,51 +55,73 @@ export function TimerPanel({ entries }: { entries: DayPlanEntry[] }) {
   const effectiveStyle = style ?? settings?.timerStyle ?? 'digital';
 
   const runningSelected = running !== null && running.planId === selected;
-  const now = useNow(effectiveStyle === 'analog' ? 'frame' : 250, runningSelected);
   const entry = entries.find((item) => item.planId === selected);
-  const targetMinutes =
-    runningSelected && status?.planToday
-      ? status.planToday.targetMinutes
-      : (entry?.targetMinutes ?? 0);
-  const studied =
-    runningSelected && status?.planToday
-      ? status.planToday.studiedSeconds + Math.max(0, (now - status.nowMs) / 1000)
-      : (entry?.studiedSeconds ?? 0);
-  const readout = computeReadout(effectiveDisplay, targetMinutes * 60, studied);
-  const busy = startTimer.isPending || stopTimer.isPending;
+  const progress = runningSelected && status?.planToday ? status.planToday : null;
+  const targetMinutes = progress ? progress.targetMinutes : (entry?.targetMinutes ?? 0);
+  const today = status?.today ?? clock?.today;
+
+  const controller = useDialController({
+    planId: selected,
+    targetSeconds: targetMinutes * 60,
+    display: effectiveDisplay,
+    running: runningSelected,
+    studiedSeconds: progress ? progress.studiedSeconds : (entry?.studiedSeconds ?? 0),
+    studiedAt: progress && status ? status.nowMs : 0,
+    dayStartMs: today ? zonedTimeToMs(today, '00:00', clock?.timezone ?? 'UTC') : 0,
+  });
+
+  // 「今天目标…，已学…」按本地时钟模型显示（含刚拖动的修正），以及按住时的握拳光标
+  useEffect(() => {
+    const root = document.documentElement;
+    const unsubscribe = controller.subscribe((frame) => {
+      const learned = Math.max(0, frame.learnedLive + frame.offset);
+      const text =
+        frame.targetSeconds > 0
+          ? `今天目标 ${formatMinutes(frame.targetSeconds / 60)}，已学 ${formatSeconds(learned)}`
+          : `今天没有分配目标，已学 ${formatSeconds(learned)}`;
+      if (summaryRef.current && summaryRef.current.textContent !== text) {
+        summaryRef.current.textContent = text;
+      }
+      root.classList.toggle(GRABBING_CLASS, frame.mode === 'drag');
+    });
+    return () => {
+      unsubscribe();
+      root.classList.remove(GRABBING_CLASS);
+    };
+  }, [controller]);
 
   if (choices.length === 0) return null;
 
-  const toggle = async () => {
+  // 开始 / 暂停也走拖动控制器的请求队列，保证和拖动产生的「暂停 / 接着计时」按顺序执行
+  const toggle = () => {
     if (selected === null) return;
-    try {
-      if (runningSelected) {
-        await stopTimer.mutateAsync(undefined);
-        return;
-      }
-      if (running) await stopTimer.mutateAsync(undefined);
-      await startTimer.mutateAsync(selected);
-    } catch (error) {
-      toast.error(error);
-    }
+    setBusy(true);
+    void controller
+      .run(async () => {
+        if (runningSelected) {
+          await api.stopTimer();
+          return;
+        }
+        if (running) await api.stopTimer();
+        await api.startTimer(selected);
+      })
+      .finally(() => setBusy(false));
   };
 
   const otherRunning = running !== null && !runningSelected;
   const runningName = choices.find((plan) => plan.id === running?.planId)?.name;
+  const owner = effectiveStyle === 'analog' ? 'analog' : 'digital';
 
   return (
     <section className={styles.panel} aria-label="计时器">
       <div className={styles.dial}>
         {effectiveStyle === 'analog' ? (
-          <AnalogStopwatch readout={readout} />
+          <AnalogStopwatch controller={controller} />
         ) : (
-          <DigitalDisplay readout={readout} />
+          <DigitalDisplay controller={controller} />
         )}
-        <p className={styles.summary}>
-          {targetMinutes > 0
-            ? `今天目标 ${formatMinutes(targetMinutes)}，已学 ${formatSeconds(studied)}`
-            : `今天没有分配目标，已学 ${formatSeconds(studied)}`}
-        </p>
+        <AdjustBadge controller={controller} owner={owner} />
+        <p className={styles.summary} ref={summaryRef} />
       </div>
 
       <div className={styles.side}>
@@ -123,7 +146,7 @@ export function TimerPanel({ entries }: { entries: DayPlanEntry[] }) {
           type="button"
           className={runningSelected ? `${styles.mainButton} ${styles.pause}` : styles.mainButton}
           disabled={busy || selected === null}
-          onClick={() => void toggle()}
+          onClick={toggle}
         >
           {runningSelected ? <PauseIcon /> : <PlayIcon />}
           <span>{runningSelected ? '暂停' : otherRunning ? '切换到这个计划' : '开始'}</span>

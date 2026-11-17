@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { computeReadout } from './readout';
+import { computeReadout, displaySign } from './readout';
 
 const HOUR = 3600;
 
@@ -31,5 +31,17 @@ describe('computeReadout', () => {
     const readout = computeReadout('countDown', 0, 120);
     expect(readout.mode).toBe('countUp');
     expect(readout.overtime).toBe(false);
+  });
+});
+
+describe('displaySign', () => {
+  it('倒计时的剩余往上拨等于少学', () => {
+    expect(displaySign('countDown', 5 * HOUR, HOUR)).toBe(-1);
+  });
+
+  it('正计时、额外学习、没有目标时往上拨都是多学', () => {
+    expect(displaySign('countUp', 5 * HOUR, HOUR)).toBe(1);
+    expect(displaySign('countDown', 5 * HOUR, 6 * HOUR)).toBe(1);
+    expect(displaySign('countDown', 0, HOUR)).toBe(1);
   });
 });

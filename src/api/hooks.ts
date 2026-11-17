@@ -136,6 +136,11 @@ export const useUpdateSession = () =>
 
 export const useDeleteSession = () => useDataMutation((id: number) => api.deleteSession(id));
 
+export const useClearCorrection = () =>
+  useDataMutation(({ planId, date }: { planId: number; date: string }) =>
+    api.clearCorrection(planId, date),
+  );
+
 export const useAdjustDay = () =>
   useDataMutation((request: AdjustRequest) => api.adjustDay(request));
 

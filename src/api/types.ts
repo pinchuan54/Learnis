@@ -173,11 +173,20 @@ export interface MonthOverview {
   days: DayCell[];
 }
 
+/** 手动修正：在计时器上拖动调整的学习时长，每个计划每天一笔净值 */
+export interface Correction {
+  planId: number;
+  date: string;
+  /** 秒，正数是多学、负数是少学 */
+  seconds: number;
+}
+
 export interface DayDetail {
   date: string;
   today: string;
   plans: DayPlanEntry[];
   sessions: Session[];
+  corrections: Correction[];
   todos: Todo[];
   adjustments: Adjustment[];
 }

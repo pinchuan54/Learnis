@@ -104,7 +104,12 @@ export function DayPage() {
             <div className={blocks.sectionHeader}>
               <h2 className={blocks.sectionTitle}>学习记录</h2>
             </div>
-            <SessionSection date={date} sessions={day.sessions} plans={plans} />
+            <SessionSection
+              date={date}
+              sessions={day.sessions}
+              corrections={day.corrections}
+              plans={plans}
+            />
           </section>
 
           {day.adjustments.length > 0 && (
