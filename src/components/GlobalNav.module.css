@@ -33,6 +33,21 @@
   color: var(--color-text);
 }
 
+/* 应用名称可在设置中隐藏：宽度收起并淡出 */
+.name {
+  max-width: 6em;
+  overflow: hidden;
+  white-space: nowrap;
+  transition:
+    max-width var(--duration-normal) var(--ease-standard),
+    opacity var(--duration-normal) var(--ease-standard);
+}
+
+.name[aria-hidden='true'] {
+  max-width: 0;
+  opacity: 0;
+}
+
 .links {
   display: flex;
   align-items: center;

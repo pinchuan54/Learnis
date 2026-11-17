@@ -155,6 +155,17 @@ function AppearanceSettings({ settings, save }: PageProps) {
           })}
         </div>
       </Section>
+      <Section title="顶部导航" text="窗口顶部导航栏的显示方式。">
+        <ul className={styles.group}>
+          <SettingRow title="显示应用名称" hint="关闭后左上角只显示 Learnis 的标志">
+            <Switch
+              label="显示应用名称"
+              checked={settings.showAppName}
+              onChange={(showAppName) => save({ showAppName })}
+            />
+          </SettingRow>
+        </ul>
+      </Section>
       <Section title="月历" text="月历页面的显示方式。">
         <ul className={styles.group}>
           <SettingRow

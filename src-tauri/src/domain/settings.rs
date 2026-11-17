@@ -65,6 +65,8 @@ pub struct Settings {
     pub long_session_minutes: i64,
     /// 月历下方显示图例（各颜色的含义）
     pub show_calendar_legend: bool,
+    /// 顶部导航左上角显示应用名称（关闭后只显示标志）
+    pub show_app_name: bool,
 }
 
 impl Default for Settings {
@@ -80,6 +82,7 @@ impl Default for Settings {
             silent_start: false,
             long_session_minutes: 180,
             show_calendar_legend: true,
+            show_app_name: true,
         }
     }
 }
@@ -184,6 +187,7 @@ mod tests {
         assert!(!settings.close_to_tray);
         assert!(!settings.silent_start);
         assert!(settings.show_calendar_legend);
+        assert!(settings.show_app_name);
 
         let updated = update(&conn, &json!({ "silentStart": true })).unwrap();
         assert!(updated.silent_start);
