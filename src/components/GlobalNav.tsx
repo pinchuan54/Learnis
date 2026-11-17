@@ -4,15 +4,30 @@ import { useNow } from '../hooks/useNow';
 import { formatClock } from '../lib/format';
 import { planColorVar } from '../lib/planColors';
 import { inTauri } from '../lib/platform';
-import { LogoMark } from './icons';
+import { CalendarIcon, LogoMark, SettingsIcon, StopwatchIcon, TargetIcon } from './icons';
 import styles from './GlobalNav.module.css';
 import { WindowControls } from './WindowControls';
 
 const NAV_ITEMS = [
-  { to: '/today', label: '今天', match: (path: string) => path === '/today' },
-  { to: '/', label: '月历', match: (path: string) => path === '/' || path.startsWith('/day/') },
-  { to: '/plans', label: '计划', match: (path: string) => path.startsWith('/plans') },
-  { to: '/settings', label: '设置', match: (path: string) => path.startsWith('/settings') },
+  { to: '/today', label: '今天', Icon: StopwatchIcon, match: (path: string) => path === '/today' },
+  {
+    to: '/',
+    label: '月历',
+    Icon: CalendarIcon,
+    match: (path: string) => path === '/' || path.startsWith('/day/'),
+  },
+  {
+    to: '/plans',
+    label: '计划',
+    Icon: TargetIcon,
+    match: (path: string) => path.startsWith('/plans'),
+  },
+  {
+    to: '/settings',
+    label: '设置',
+    Icon: SettingsIcon,
+    match: (path: string) => path.startsWith('/settings'),
+  },
 ];
 
 /**
@@ -30,16 +45,17 @@ export function GlobalNav() {
       </div>
 
       <nav className={styles.links} aria-label="主导航" data-tauri-drag-region>
-        {NAV_ITEMS.map((item) => {
-          const active = item.match(pathname);
+        {NAV_ITEMS.map(({ to, label, Icon, match }) => {
+          const active = match(pathname);
           return (
             <Link
-              key={item.to}
-              to={item.to}
+              key={to}
+              to={to}
+              aria-label={label}
               aria-current={active ? 'page' : undefined}
               className={active ? `${styles.link} ${styles.active}` : styles.link}
             >
-              {item.label}
+              <Icon />
             </Link>
           );
         })}

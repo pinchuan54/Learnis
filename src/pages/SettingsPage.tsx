@@ -1,4 +1,5 @@
 import { type ReactNode, useEffect, useState } from 'react';
+import { Link, useParams } from 'react-router';
 import appIcon from '../../src-tauri/icons/app-icon.svg';
 import { api } from '../api/client';
 import {
@@ -17,7 +18,15 @@ import type {
   UpdateInfo,
   UpdateProgress,
 } from '../api/types';
-import { ArrowUpRightIcon, CheckIcon } from '../components/icons';
+import {
+  ArrowUpRightIcon,
+  CheckIcon,
+  InfoIcon,
+  PaletteIcon,
+  SlidersIcon,
+  StopwatchIcon,
+  TargetIcon,
+} from '../components/icons';
 import { Button } from '../components/ui/Button';
 import forms from '../components/ui/forms.module.css';
 import { SegmentedControl } from '../components/ui/SegmentedControl';
@@ -59,141 +68,202 @@ const LONG_SESSION_OPTIONS = [
   { value: 240, label: '4 小时' },
 ];
 
-/** 设置页 */
+type PageProps = { settings: Settings; save: (patch: Partial<Settings>) => void };
+
+/** 设置分类：左侧导航的一项对应右侧一页，地址为 `/settings/<id>` */
+const PAGES = [
+  { id: 'general', label: '通用', Icon: SlidersIcon, Content: GeneralSettings },
+  { id: 'appearance', label: '外观', Icon: PaletteIcon, Content: AppearanceSettings },
+  { id: 'timer', label: '计时', Icon: StopwatchIcon, Content: TimerSettings },
+  { id: 'plans', label: '计划', Icon: TargetIcon, Content: PlanSettings },
+  { id: 'about', label: '关于', Icon: InfoIcon, Content: AboutSettings },
+];
+
+/** 设置页：左侧分类导航，右侧显示当前分类 */
 export function SettingsPage() {
+  const { section } = useParams();
   const { data: settings } = useSettings();
   const updateSettings = useUpdateSettings();
   const toast = useToast();
+  const current = PAGES.find((item) => item.id === section) ?? PAGES[0];
 
   const save = (patch: Partial<Settings>) => updateSettings.mutate(patch, { onError: toast.error });
 
   return (
-    <div className={page.page}>
-      <header className={page.header}>
-        <h1 className={page.title}>设置</h1>
-        <p className={page.subtitle}>让 Learnis 按你习惯的方式工作。</p>
-      </header>
-
-      <AppearanceSection />
-
-      {settings && (
-        <>
-          <Section title="月历" text="月历页面的显示方式。">
-            <ul className={styles.group}>
-              <SettingRow
-                title="显示图例"
-                hint="在月历下方说明各颜色的含义：达标、多学、进行中、没学够、有调整"
-              >
-                <Switch
-                  label="显示图例"
-                  checked={settings.showCalendarLegend}
-                  onChange={(showCalendarLegend) => save({ showCalendarLegend })}
-                />
-              </SettingRow>
-            </ul>
-          </Section>
-
-          <Section title="计时器" text="计时页面默认的外观和行为，计时时也可以随时切换。">
-            <ul className={styles.group}>
-              <SettingRow title="默认外观">
-                <SegmentedControl<TimerStyle>
-                  ariaLabel="默认外观"
-                  options={[
-                    { value: 'digital', label: '电子计时器' },
-                    { value: 'analog', label: '物理秒表' },
-                  ]}
-                  value={settings.timerStyle}
-                  onChange={(timerStyle) => save({ timerStyle })}
-                />
-              </SettingRow>
-              <SettingRow title="默认显示">
-                <SegmentedControl<TimerDisplay>
-                  ariaLabel="默认显示"
-                  options={[
-                    { value: 'countDown', label: '倒计时' },
-                    { value: 'countUp', label: '正计时' },
-                  ]}
-                  value={settings.timerDisplay}
-                  onChange={(timerDisplay) => save({ timerDisplay })}
-                />
-              </SettingRow>
-              <SettingRow
-                title="倒计时归零提醒"
-                hint="今天的目标学完时提醒你，选择继续学习或暂停。计时不会自动停下，超出的部分用橙色标出"
-              >
-                <Switch
-                  label="倒计时归零提醒"
-                  checked={settings.countdownReminder}
-                  onChange={(countdownReminder) => save({ countdownReminder })}
-                />
-              </SettingRow>
-              <SettingRow title="长时间计时提醒" hint="单次连续计时超过设定时长时提醒休息">
-                <select
-                  className={`${forms.select} ${styles.select}`}
-                  value={settings.longSessionMinutes}
-                  aria-label="长时间计时提醒"
-                  onChange={(event) => save({ longSessionMinutes: Number(event.target.value) })}
-                >
-                  {LONG_SESSION_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </SettingRow>
-            </ul>
-          </Section>
-
-          <Section title="没学够的时长" text="一天结束后，没完成的时长默认如何处理。">
-            <ul className={styles.group}>
-              <SettingRow title="默认处理方式" hint="挂起时会在月历和今天页面提醒你手动安排">
-                <SegmentedControl<ShortfallDefault>
-                  ariaLabel="默认处理方式"
-                  options={[
-                    { value: 'suspend', label: '挂起等我处理' },
-                    { value: 'spread', label: '自动均分' },
-                    { value: 'nextDay', label: '自动加到下一天' },
-                  ]}
-                  value={settings.shortfallDefault}
-                  onChange={(shortfallDefault) => save({ shortfallDefault })}
-                />
-              </SettingRow>
-            </ul>
-          </Section>
-
-          <Section title="快捷键" text="在 AE 等任何软件里都能用快捷键开始或暂停计时。">
-            <ul className={styles.group}>
-              <SettingRow title="开始 / 暂停计时" hint="作用于最近计时的计划；点击后按下新的组合键">
-                <HotkeyField
-                  value={settings.toggleHotkey}
-                  onSave={(toggleHotkey) => save({ toggleHotkey })}
-                />
-              </SettingRow>
-            </ul>
-          </Section>
-
-          <StartupSection settings={settings} onSave={save} />
-
-          <TimezoneSection
-            timezone={settings.timezone}
-            onChange={(timezone) => save({ timezone })}
-          />
-        </>
-      )}
-
-      <AboutSection />
+    <div className={`${page.page} ${styles.layout}`}>
+      <nav className={styles.sidebar} aria-label="设置分类">
+        {PAGES.map(({ id, label, Icon }) => (
+          <Link
+            key={id}
+            to={`/settings/${id}`}
+            replace
+            aria-current={id === current.id ? 'page' : undefined}
+            className={styles.navItem}
+          >
+            <Icon />
+            {label}
+          </Link>
+        ))}
+      </nav>
+      <div>
+        <header className={page.header}>
+          <h1 className={page.title}>{current.label}</h1>
+        </header>
+        {settings && <current.Content settings={settings} save={save} />}
+      </div>
     </div>
   );
 }
 
+function GeneralSettings(props: PageProps) {
+  return (
+    <>
+      <StartupSection {...props} />
+      <TimezoneSection {...props} />
+    </>
+  );
+}
+
+function AppearanceSettings({ settings, save }: PageProps) {
+  const { preference, setPreference } = useTheme();
+  return (
+    <>
+      <Section title="浅色与深色" text="选择浅色、深色，或跟随系统自动切换。">
+        <div className={styles.appearance} role="radiogroup" aria-label="外观">
+          {APPEARANCE_OPTIONS.map((option) => {
+            const selected = preference === option.value;
+            return (
+              <button
+                key={option.value}
+                type="button"
+                role="radio"
+                aria-checked={selected}
+                aria-label={option.label}
+                className={selected ? `${styles.option} ${styles.selected}` : styles.option}
+                onClick={(event) =>
+                  // 新外观从被点卡片的中心以圆形展开
+                  setPreference(
+                    option.value,
+                    rectCenter(event.currentTarget.getBoundingClientRect()),
+                  )
+                }
+              >
+                <AppearanceThumbnail variant={option.value} />
+                <span className={styles.optionLabel}>{option.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </Section>
+      <Section title="月历" text="月历页面的显示方式。">
+        <ul className={styles.group}>
+          <SettingRow
+            title="显示图例"
+            hint="在月历下方说明各颜色的含义：达标、多学、进行中、没学够、有调整"
+          >
+            <Switch
+              label="显示图例"
+              checked={settings.showCalendarLegend}
+              onChange={(showCalendarLegend) => save({ showCalendarLegend })}
+            />
+          </SettingRow>
+        </ul>
+      </Section>
+    </>
+  );
+}
+
+function TimerSettings({ settings, save }: PageProps) {
+  return (
+    <>
+      <Section title="计时器" text="计时页面默认的外观和行为，计时时也可以随时切换。">
+        <ul className={styles.group}>
+          <SettingRow title="默认外观">
+            <SegmentedControl<TimerStyle>
+              ariaLabel="默认外观"
+              options={[
+                { value: 'digital', label: '电子计时器' },
+                { value: 'analog', label: '物理秒表' },
+              ]}
+              value={settings.timerStyle}
+              onChange={(timerStyle) => save({ timerStyle })}
+            />
+          </SettingRow>
+          <SettingRow title="默认显示">
+            <SegmentedControl<TimerDisplay>
+              ariaLabel="默认显示"
+              options={[
+                { value: 'countDown', label: '倒计时' },
+                { value: 'countUp', label: '正计时' },
+              ]}
+              value={settings.timerDisplay}
+              onChange={(timerDisplay) => save({ timerDisplay })}
+            />
+          </SettingRow>
+          <SettingRow
+            title="倒计时归零提醒"
+            hint="今天的目标学完时提醒你，选择继续学习或暂停。计时不会自动停下，超出的部分用橙色标出"
+          >
+            <Switch
+              label="倒计时归零提醒"
+              checked={settings.countdownReminder}
+              onChange={(countdownReminder) => save({ countdownReminder })}
+            />
+          </SettingRow>
+          <SettingRow title="长时间计时提醒" hint="单次连续计时超过设定时长时提醒休息">
+            <select
+              className={`${forms.select} ${styles.select}`}
+              value={settings.longSessionMinutes}
+              aria-label="长时间计时提醒"
+              onChange={(event) => save({ longSessionMinutes: Number(event.target.value) })}
+            >
+              {LONG_SESSION_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </SettingRow>
+        </ul>
+      </Section>
+
+      <Section title="快捷键" text="在 AE 等任何软件里都能用快捷键开始或暂停计时。">
+        <ul className={styles.group}>
+          <SettingRow title="开始 / 暂停计时" hint="作用于最近计时的计划；点击后按下新的组合键">
+            <HotkeyField
+              value={settings.toggleHotkey}
+              onSave={(toggleHotkey) => save({ toggleHotkey })}
+            />
+          </SettingRow>
+        </ul>
+      </Section>
+    </>
+  );
+}
+
+function PlanSettings({ settings, save }: PageProps) {
+  return (
+    <Section title="没学够的时长" text="一天结束后，没完成的时长默认如何处理。">
+      <ul className={styles.group}>
+        <SettingRow title="默认处理方式" hint="挂起时会在月历和今天页面提醒你手动安排">
+          <SegmentedControl<ShortfallDefault>
+            ariaLabel="默认处理方式"
+            options={[
+              { value: 'suspend', label: '挂起等我处理' },
+              { value: 'spread', label: '自动均分' },
+              { value: 'nextDay', label: '自动加到下一天' },
+            ]}
+            value={settings.shortfallDefault}
+            onChange={(shortfallDefault) => save({ shortfallDefault })}
+          />
+        </SettingRow>
+      </ul>
+    </Section>
+  );
+}
+
 /** 启动与窗口：开机自启（以系统登记为准）、静默启动、关闭到托盘 */
-function StartupSection({
-  settings,
-  onSave,
-}: {
-  settings: Settings;
-  onSave: (patch: Partial<Settings>) => void;
-}) {
+function StartupSection({ settings, save }: PageProps) {
   const toast = useToast();
   const autostart = useAutostart();
   const setAutostart = useSetAutostart();
@@ -224,7 +294,7 @@ function StartupSection({
             label="静默启动"
             checked={settings.silentStart}
             disabled={!autostartOn}
-            onChange={(silentStart) => onSave({ silentStart })}
+            onChange={(silentStart) => save({ silentStart })}
           />
         </SettingRow>
         <SettingRow
@@ -234,7 +304,7 @@ function StartupSection({
           <Switch
             label="关闭窗口时缩到托盘"
             checked={settings.closeToTray}
-            onChange={(closeToTray) => onSave({ closeToTray })}
+            onChange={(closeToTray) => save({ closeToTray })}
           />
         </SettingRow>
       </ul>
@@ -242,7 +312,7 @@ function StartupSection({
   );
 }
 
-function AboutSection() {
+function AboutSettings() {
   const toast = useToast();
   const { state, check, install } = useUpdater(toast.error);
   const busy = state.phase === 'checking' || state.phase === 'installing';
@@ -257,48 +327,46 @@ function AboutSection() {
   };
 
   return (
-    <Section title="关于">
-      <ul className={styles.group}>
-        <li className={`${styles.settingRow} ${styles.appRow}`}>
-          <div className={styles.appInfo}>
-            <img className={styles.appIcon} src={appIcon} alt="" draggable={false} />
-            <div className={styles.settingText}>
-              <span className={styles.appName}>Learnis</span>
-              <span className={styles.settingHint}>
-                版本 {formatDisplayVersion(__APP_VERSION__)}
-                {__BUILD_COMMIT__ && ` · ${__BUILD_COMMIT__}`}
-                {state.phase === 'latest' && (
-                  <span className={styles.latest}>
-                    <CheckIcon />
-                    已是最新版本
-                  </span>
-                )}
-              </span>
-            </div>
+    <ul className={styles.group}>
+      <li className={`${styles.settingRow} ${styles.appRow}`}>
+        <div className={styles.appInfo}>
+          <img className={styles.appIcon} src={appIcon} alt="" draggable={false} />
+          <div className={styles.settingText}>
+            <span className={styles.appName}>Learnis</span>
+            <span className={styles.settingHint}>
+              版本 {formatDisplayVersion(__APP_VERSION__)}
+              {__BUILD_COMMIT__ && ` · ${__BUILD_COMMIT__}`}
+              {state.phase === 'latest' && (
+                <span className={styles.latest}>
+                  <CheckIcon />
+                  已是最新版本
+                </span>
+              )}
+            </span>
           </div>
-          <div className={styles.appActions}>
-            <Button onClick={() => void checkUpdate()} disabled={busy}>
-              {state.phase === 'checking' ? '正在检查…' : '检查更新'}
-            </Button>
-            <Button onClick={openProjectPage}>
-              项目地址
-              <ArrowUpRightIcon />
-            </Button>
-          </div>
-        </li>
-        {(state.phase === 'available' || state.phase === 'installing') && (
-          <UpdateRow
-            info={state.info}
-            installing={state.phase === 'installing'}
-            progress={state.phase === 'installing' ? state.progress : null}
-            onInstall={() => void install(state.info)}
-          />
-        )}
-        <SettingRow title="贡献者">
-          <span className={styles.value}>pinchuan54</span>
-        </SettingRow>
-      </ul>
-    </Section>
+        </div>
+        <div className={styles.appActions}>
+          <Button onClick={() => void checkUpdate()} disabled={busy}>
+            {state.phase === 'checking' ? '正在检查…' : '检查更新'}
+          </Button>
+          <Button onClick={openProjectPage}>
+            项目地址
+            <ArrowUpRightIcon />
+          </Button>
+        </div>
+      </li>
+      {(state.phase === 'available' || state.phase === 'installing') && (
+        <UpdateRow
+          info={state.info}
+          installing={state.phase === 'installing'}
+          progress={state.phase === 'installing' ? state.progress : null}
+          onInstall={() => void install(state.info)}
+        />
+      )}
+      <SettingRow title="贡献者">
+        <span className={styles.value}>pinchuan54</span>
+      </SettingRow>
+    </ul>
   );
 }
 
@@ -389,43 +457,7 @@ function SettingRow({
   );
 }
 
-function AppearanceSection() {
-  const { preference, setPreference } = useTheme();
-  return (
-    <Section title="外观" text="选择浅色、深色，或跟随系统自动切换。">
-      <div className={styles.appearance} role="radiogroup" aria-label="外观">
-        {APPEARANCE_OPTIONS.map((option) => {
-          const selected = preference === option.value;
-          return (
-            <button
-              key={option.value}
-              type="button"
-              role="radio"
-              aria-checked={selected}
-              aria-label={option.label}
-              className={selected ? `${styles.option} ${styles.selected}` : styles.option}
-              onClick={(event) =>
-                // 新外观从被点卡片的中心以圆形展开
-                setPreference(option.value, rectCenter(event.currentTarget.getBoundingClientRect()))
-              }
-            >
-              <AppearanceThumbnail variant={option.value} />
-              <span className={styles.optionLabel}>{option.label}</span>
-            </button>
-          );
-        })}
-      </div>
-    </Section>
-  );
-}
-
-function TimezoneSection({
-  timezone,
-  onChange,
-}: {
-  timezone: string;
-  onChange: (value: string) => void;
-}) {
+function TimezoneSection({ settings, save }: PageProps) {
   const { data: clock } = useClock();
   const { data: zones } = useTimezones();
   const others = (zones ?? []).filter((zone) => !COMMON_TIMEZONES.includes(zone));
@@ -442,9 +474,9 @@ function TimezoneSection({
         >
           <select
             className={`${forms.select} ${styles.select} ${styles.wide}`}
-            value={timezone}
+            value={settings.timezone}
             aria-label="时区"
-            onChange={(event) => onChange(event.target.value)}
+            onChange={(event) => save({ timezone: event.target.value })}
           >
             <option value="system">跟随系统</option>
             <optgroup label="常用">

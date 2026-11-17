@@ -1,7 +1,7 @@
 {
   "name": "learnis",
   "private": true,
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "本地学习计划与计时软件",
   "type": "module",
   "engines": {
@@ -28,6 +28,7 @@
   "dependencies": {
     "@tanstack/react-query": "^5.107.1",
     "@tauri-apps/api": "^2.12.4",
+    "lucide-react": "^1.74.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "react-router": "^7.18.5"

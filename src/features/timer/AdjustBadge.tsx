@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { UndoIcon } from '../../components/icons';
 import { formatSeconds } from '../../lib/format';
 import { mod, springStep } from './feel/spring';
 import type { DialController, DialOwner } from './dial/controller';
@@ -201,23 +202,7 @@ export function AdjustBadge({
             tabIndex={-1}
             onClick={() => controller.undo()}
           >
-            <svg viewBox="0 0 20 20" aria-hidden="true">
-              <path
-                d="M7.5 4.5 3.8 8.2l3.7 3.7"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              <path
-                d="M4.3 8.2h7.2a4.3 4.3 0 0 1 0 8.6H9"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-              />
-            </svg>
+            <UndoIcon />
           </button>
         </span>
       </div>

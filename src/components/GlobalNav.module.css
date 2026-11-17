@@ -40,14 +40,13 @@
 }
 
 .link {
-  display: inline-flex;
-  align-items: center;
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 44px;
   height: 30px;
-  padding: 0 var(--space-4);
   border-radius: var(--radius-pill);
-  font-size: var(--text-body);
   color: var(--color-text-secondary);
-  text-decoration: none;
   transition:
     color var(--duration-fast) var(--ease-standard),
     background-color var(--duration-fast) var(--ease-standard);
@@ -62,7 +61,38 @@
 .active:hover {
   color: var(--color-text);
   background: var(--color-fill);
-  font-weight: 600;
+}
+
+.link svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* 鼠标停留片刻（或键盘聚焦）时，在图标下方显示名称 */
+.link::after {
+  content: attr(aria-label);
+  position: absolute;
+  top: calc(100% + var(--space-2));
+  left: 50%;
+  padding: var(--space-1) var(--space-2);
+  border-radius: 6px;
+  background: var(--color-bg-elevated);
+  box-shadow: var(--control-thumb-shadow);
+  color: var(--color-text);
+  font-size: var(--text-caption);
+  white-space: nowrap;
+  opacity: 0;
+  translate: -50% -4px;
+  pointer-events: none;
+  transition:
+    opacity var(--duration-fast) var(--ease-standard),
+    translate var(--duration-fast) var(--ease-standard);
+}
+
+.link:is(:hover, :focus-visible)::after {
+  opacity: 1;
+  translate: -50% 0;
+  transition-delay: 400ms;
 }
 
 .trailing {

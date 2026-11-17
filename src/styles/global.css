@@ -45,6 +45,16 @@ button {
   outline-offset: 2px;
 }
 
+/* 导航（顶栏、设置侧栏）的图标点击回弹：按下缩小，松开后带一点过冲弹回 */
+nav a svg {
+  transition: transform 420ms var(--ease-spring);
+}
+
+nav a:active svg {
+  transform: scale(0.8);
+  transition: transform 100ms var(--ease-standard);
+}
+
 /* 细滚动条，接近 macOS 的叠加样式 */
 ::-webkit-scrollbar {
   width: 12px;
