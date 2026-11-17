@@ -30,7 +30,11 @@ describe('reelPositions', () => {
 
 describe('dialValues', () => {
   it('倒计时显示剩余，拨动方向与已学相反', () => {
-    expect(dialValues('countDown', 7500, 3180, 60)).toEqual({ base: 4320, offset: -60, over: false });
+    expect(dialValues('countDown', 7500, 3180, 60)).toEqual({
+      base: 4320,
+      offset: -60,
+      over: false,
+    });
   });
 
   it('超过目标后显示额外学习', () => {

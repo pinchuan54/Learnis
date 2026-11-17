@@ -134,3 +134,9 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* 按住拖动计时器时，整页显示握拳的手（拖出计时器范围时也一样） */
+:global(html.dial-grabbing),
+:global(html.dial-grabbing *) {
+  cursor: grabbing !important;
+}

@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { useClock, useDeleteSession } from '../../api/hooks';
-import type { PlanSummary, Session } from '../../api/types';
+import { useClearCorrection, useClock, useDeleteSession } from '../../api/hooks';
+import type { Correction, PlanSummary, Session } from '../../api/types';
 import { PencilIcon, TrashIcon } from '../../components/icons';
 import { Button } from '../../components/ui/Button';
 import { useToast } from '../../components/ui/toast/ToastContext';
@@ -12,18 +12,21 @@ import blocks from '../../styles/blocks.module.css';
 import { SessionSheet } from './SessionSheet';
 import styles from './SessionSection.module.css';
 
-/** 某天的学习记录：计时器产生的和补录的，可修改、删除 */
+/** 某天的学习记录：计时器产生的和补录的，可修改、删除；以及在计时器上拖动记下的手动修正 */
 export function SessionSection({
   date,
   sessions,
+  corrections,
   plans,
 }: {
   date: string;
   sessions: Session[];
+  corrections: Correction[];
   plans: PlanSummary[];
 }) {
   const { data: clock } = useClock();
   const deleteSession = useDeleteSession();
+  const clearCorrection = useClearCorrection();
   const toast = useToast();
   const [editing, setEditing] = useState<Session | null>(null);
   const [adding, setAdding] = useState(false);
@@ -34,7 +37,7 @@ export function SessionSection({
 
   return (
     <>
-      {sessions.length === 0 ? (
+      {sessions.length === 0 && corrections.length === 0 ? (
         <div className={blocks.empty}>
           <p>这天还没有学习记录。</p>
         </div>
@@ -89,6 +92,46 @@ export function SessionSection({
                         onSuccess: () => toast.show('记录已删除'),
                         onError: toast.error,
                       })
+                    }
+                  >
+                    <TrashIcon />
+                  </Button>
+                </div>
+              </li>
+            );
+          })}
+          {corrections.map((correction) => {
+            const plan = planById.get(correction.planId);
+            const sign = correction.seconds > 0 ? '+' : '−';
+            return (
+              <li key={`correction-${correction.planId}`} className={blocks.row}>
+                <span
+                  className={blocks.dot}
+                  style={{ background: planColorVar(plan?.color ?? 'gray') }}
+                />
+                <div className={blocks.rowMain}>
+                  <span className={blocks.rowTitle}>
+                    手动修正
+                    <span className={styles.duration}>
+                      {sign}
+                      {formatSeconds(Math.abs(correction.seconds))}
+                    </span>
+                  </span>
+                  <span className={blocks.rowMeta}>
+                    {plan?.name ?? '已删除的计划'} · 在计时器上拖动调整
+                  </span>
+                </div>
+                <div className={blocks.rowActions}>
+                  <Button
+                    iconOnly
+                    size="sm"
+                    variant="plain"
+                    aria-label="删除手动修正"
+                    onClick={() =>
+                      clearCorrection.mutate(
+                        { planId: correction.planId, date },
+                        { onSuccess: () => toast.show('手动修正已删除'), onError: toast.error },
+                      )
                     }
                   >
                     <TrashIcon />

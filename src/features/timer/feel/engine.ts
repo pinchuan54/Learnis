@@ -1,4 +1,11 @@
-import { DAMPED_WHEEL, type DialUnit, type FeelPreset, followOmega, glideTau, snapTau } from './preset';
+import {
+  DAMPED_WHEEL,
+  type DialUnit,
+  type FeelPreset,
+  followOmega,
+  glideTau,
+  snapTau,
+} from './preset';
 import { roundToward, springStep } from './spring';
 
 /** 拨动秒数的上下界（相对当前合计）：今天合计不低于 0，不超过今天已经过去的时长 */
@@ -46,7 +53,11 @@ export class FeelEngine {
   private samples: [number, number][] = [];
   private lastStep: number | null = null;
 
-  constructor(readonly preset: FeelPreset = DAMPED_WHEEL) {}
+  readonly preset: FeelPreset;
+
+  constructor(preset: FeelPreset = DAMPED_WHEEL) {
+    this.preset = preset;
+  }
 
   /** 按住：上一次还在收尾的话，从当前显示的位置接着拖 */
   grab(unit: DialUnit, t: number): void {
