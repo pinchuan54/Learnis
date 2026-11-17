@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { springStep, mod } from './feel/spring';
 import type { DialUnit } from './feel/preset';
 import type { DialController } from './dial/controller';
+import { digitalDragSeconds } from './dial/digitalDrag';
 import { DIGIT_REELS, dialValues, reelPositions } from './dial/reels';
 import { fadeInText } from './dial/fadeInText';
 import styles from './DigitalDisplay.module.css';
@@ -177,11 +178,12 @@ function DigitColumn({
           } catch {
             // 没有真实指针（如脚本合成的事件）时跳过
           }
-          const row = event.currentTarget.querySelector('span span');
+          // 一格数字的高度：量数字窗口（正好一格高），不能量整条数字带（7 格或 11 格高）
+          const reel = event.currentTarget.querySelector(`.${CSS.escape(styles.reel)}`);
           drag.current = {
             y: event.clientY,
             t: event.timeStamp,
-            rowPx: row?.getBoundingClientRect().height || 100,
+            rowPx: reel?.getBoundingClientRect().height || 100,
           };
           controller.grab('digital', String(unit), unit, Date.now());
         }}
@@ -189,12 +191,10 @@ function DigitColumn({
           const state = drag.current;
           if (!state) return;
           const dy = event.clientY - state.y;
-          const speed = Math.abs(dy) / Math.max(1, event.timeStamp - state.t); // 像素 / 毫秒
+          const dtMs = event.timeStamp - state.t;
           state.y = event.clientY;
           state.t = event.timeStamp;
-          // 按一格数字的高度换算：速度 1 时数字正好跟着手走；拖得很快时额外多走几格
-          const boost = 1 + preset.accel * Math.max(0, speed - 0.5);
-          controller.drag((-dy / state.rowPx) * preset.speed[unit] * boost * unit, Date.now());
+          controller.drag(digitalDragSeconds(dy, dtMs, state.rowPx, unit, preset), Date.now());
         }}
         onPointerUp={() => {
           if (!drag.current) return;
