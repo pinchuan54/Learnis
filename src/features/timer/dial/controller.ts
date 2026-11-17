@@ -34,6 +34,7 @@ export interface BadgeState {
 /** 每帧交给各个表去画的数据 */
 export interface DialFrame {
   t: number;
+  planId: number | null;
   /** 实际采用的显示方式：没有目标时倒计时退回正计时 */
   display: TimerDisplay;
   targetSeconds: number;
@@ -186,7 +187,11 @@ export class DialController {
 
   // ---------- 操作 ----------
 
-  /** 按住某个部件开始拖：正在计时就先暂停（调整用掉的时间不计入） */
+  /**
+   * 按住某个部件开始拖：正在计时就先暂停（调整用掉的时间不计入）。
+   * 后端虽然停了表，界面上仍当作在计时：松手接着计时之前不刷新数据，
+   * 「暂停」按钮和顶部计时胶囊都保持原样。
+   */
   grab(owner: DialOwner, part: string, unit: DialUnit, t: number): void {
     const planId = this.server?.planId;
     if (planId == null) return;
@@ -196,6 +201,7 @@ export class DialController {
         this.base = this.learnedAt(t);
         this.baseAt = t;
         this.running = false;
+        this.pending += 1;
         void this.run(() => this.api.stopTimer());
       }
     }
@@ -229,6 +235,8 @@ export class DialController {
     if (planId != null && (landing !== 0 || resume)) {
       void this.run(() => this.api.addCorrection(planId, landing, resume));
     }
+    // 接着计时的请求已经排上，放开按住时对刷新的拦截
+    if (resume) this.pending -= 1;
   }
 
   /** 滚轮、方向键：表上的数加减 steps 格（计时不停） */
@@ -321,6 +329,7 @@ export class DialController {
 
     const frame: DialFrame = {
       t,
+      planId: this.server.planId,
       display: this.effectiveDisplay(),
       targetSeconds: this.server.targetSeconds,
       learnedShown: this.shown.value,
