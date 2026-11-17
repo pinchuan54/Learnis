@@ -26,6 +26,7 @@ import { useToast } from '../components/ui/toast/ToastContext';
 import { describeProgress } from '../features/update/progress';
 import { useUpdater } from '../features/update/useUpdater';
 import type { ThemePreference } from '../lib/theme';
+import { rectCenter } from '../lib/themeTransition';
 import { formatDisplayVersion } from '../lib/version';
 import page from '../styles/page.module.css';
 import { useTheme } from '../theme/ThemeContext';
@@ -403,7 +404,10 @@ function AppearanceSection() {
               aria-checked={selected}
               aria-label={option.label}
               className={selected ? `${styles.option} ${styles.selected}` : styles.option}
-              onClick={() => setPreference(option.value)}
+              onClick={(event) =>
+                // 新外观从被点卡片的中心以圆形展开
+                setPreference(option.value, rectCenter(event.currentTarget.getBoundingClientRect()))
+              }
             >
               <AppearanceThumbnail variant={option.value} />
               <span className={styles.optionLabel}>{option.label}</span>
