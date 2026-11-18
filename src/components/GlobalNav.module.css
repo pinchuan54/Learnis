@@ -104,10 +104,11 @@
     translate var(--duration-fast) var(--ease-standard);
 }
 
-.link:is(:hover, :focus-visible)::after {
+/* 点过的图标带着焦点，鼠标还停在上面时不再提示 */
+.link:is(:hover:not(:focus), :focus-visible)::after {
   opacity: 1;
   translate: -50% 0;
-  transition-delay: 400ms;
+  transition-delay: 750ms;
 }
 
 .trailing {
