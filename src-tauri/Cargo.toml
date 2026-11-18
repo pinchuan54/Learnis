@@ -3,6 +3,7 @@ name = "learnis"
 version = "0.2.4"
 description = "本地学习计划与计时软件"
 authors = ["pinchuan54", "Claude"]
+license = "MIT"
 repository = "https://github.com/pinchuan54/Learnis"
 edition = "2024"
 rust-version = "1.90"

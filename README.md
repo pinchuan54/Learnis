@@ -1,22 +1,22 @@
-# Learnis
-
-一个本地运行的学习计划与计时软件。
+<div align="center">
+  <img src="src-tauri/icons/128x128@2x.png" width="96" height="96" alt="Learnis" />
+  <h1>Learnis</h1>
+  <p>本地运行的学习计划与计时软件</p>
+  <p>
+    <a href="https://github.com/pinchuan54/Learnis/releases/latest"><img src="https://img.shields.io/github/v/release/pinchuan54/Learnis" alt="最新版本" /></a>
+    <img src="https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-0078D6" alt="支持 Windows 10 / 11" />
+    <a href="LICENSE"><img src="https://img.shields.io/github/license/pinchuan54/Learnis" alt="MIT 协议" /></a>
+  </p>
+  <p>
+    <a href="https://github.com/pinchuan54/Learnis/releases/latest">下载</a> ·
+    <a href="CHANGELOG.md">更新日志</a> ·
+    <a href="CONTRIBUTING.md">参与开发</a>
+  </p>
+</div>
 
 为想掌握的技能设定「总时长 + 期限」（例如：AE，1000 小时，明年 6 月前），Learnis 会把时长分配到期限内的每个学习日；每天打开计时器记录实际学习时间，在月历上一眼看清进度。
 
-> 当前版本 v0.2，支持 Windows 10 / 11，界面为简体中文。
-
-## 安装
-
-1. 在 [Releases](https://github.com/pinchuan54/Learnis/releases) 下载最新的 `Learnis_x.y.z_x64-setup.exe`
-2. 双击安装，按当前用户安装，不需要管理员权限
-3. 安装包暂未做代码签名，首次运行时 Windows 可能提示「已保护你的电脑」，点击「更多信息 → 仍要运行」即可
-
-从 v0.1.2 起，在「设置 → 关于」点「检查更新」即可一键更新到新版本；更早的版本请按上面的步骤手动安装一次新版本。
-
-各版本的改动见 [更新日志](CHANGELOG.md)。
-
-## 功能（v0.2）
+## 功能
 
 - **学习计划**：总时长 + 期限，可设置学习日，自动均分到每天
 - **月历视图**：每天一个进度环，达标 / 多学 / 进行中 / 没学够 / 有调整一目了然
@@ -25,110 +25,34 @@
 - **拖动调整时间**：忘了开计时或多算了时间，直接拖动计时器的数字、转动秒表指针补上或扣掉，记成当天的手动修正，可以撤销
 - **灵活调整**：没学够的时长可均分到后续、拆分到指定日子或全部加到下一天
 - **补录与修改**：忘记计时也能手动补录
-- **托盘常驻与全局快捷键**：后台计时，一键开始 / 暂停
+- **托盘常驻与全局快捷键**：后台计时，一键开始 / 暂停（默认 `Ctrl+Shift+F12`，可在设置里改）
 - **开机自启**：登录系统后自动运行，可选静默启动（不打开窗口，只在托盘待命）
-- **时区设置**：可独立于系统时区
-- **检查更新**：在设置页一键下载、校验签名并安装新版本
-- **数据本地存储**：所有数据保存在本机；只有点「检查更新」时才会访问 GitHub
+- **外观**：浅色 / 深色 / 跟随系统，时区可独立于系统设置
+- **一键更新**：在设置页检查更新，自动下载、校验签名并安装
 
-## 技术栈
+## 安装
 
-- [Tauri 2](https://tauri.app/)（Rust）
-- React + TypeScript + Vite
-- SQLite
+1. 在 [Releases](https://github.com/pinchuan54/Learnis/releases/latest) 下载最新的 `Learnis_x.y.z_x64-setup.exe`
+2. 双击安装，按当前用户安装，不需要管理员权限
+3. 安装包暂未做代码签名，首次运行时 Windows 可能提示「已保护你的电脑」，点击「更多信息 → 仍要运行」即可
 
-## 开发
+系统要求：Windows 10 / 11。程序依赖 WebView2 运行时，Windows 11 已自带，Windows 10 缺少时安装程序会自动安装。界面为简体中文。
 
-### 环境要求
+## 更新
 
-- [Node.js](https://nodejs.org/) 20.19 及以上
-- [Rust](https://www.rust-lang.org/tools/install) 稳定版（1.90 及以上）
-- Windows：Microsoft C++ 生成工具（勾选「使用 C++ 的桌面开发」）与 WebView2 运行时（Windows 11 已自带）
+在「设置 → 关于」点「检查更新」，有新版本时点「立即更新」即可。v0.1.1 及更早的版本没有这个功能，需要按上面的步骤手动安装一次新版本。
 
-详见 [Tauri 环境准备](https://tauri.app/start/prerequisites/)。
+各版本的改动见 [更新日志](CHANGELOG.md)。
 
-### 常用命令
+## 数据与隐私
 
-```bash
-npm install          # 安装依赖
-npm run tauri dev    # 启动桌面应用（开发模式，支持热更新）
-npm run dev          # 只在浏览器中预览界面（没有窗口按钮）
-npm run tauri build  # 构建安装包
-npm run build:dev    # 打内部测试安装包（不签名，见下）
-```
+- 所有数据保存在本机的 `%APPDATA%\io.github.pinchuan54.learnis\` 文件夹；要备份时，先在托盘菜单点「退出 Learnis」，再复制整个文件夹
+- 只有点「检查更新」时才会联网访问 GitHub，不在后台自动检查，也不收集任何使用数据
 
-安装包会附带自动更新用的签名，构建时需要在环境变量 `TAURI_SIGNING_PRIVATE_KEY` 中提供签名私钥。没有私钥时，可以把 `src-tauri/tauri.conf.json` 中的 `createUpdaterArtifacts` 改为 `false` 再构建（这样构建出的安装包不能用于发布更新）。
+## 参与开发
 
-`npm run build:dev` 打的是给人工检查用的内部测试包，不发布：编号为 `v<基础版本>-dev.<N>`（如 `v0.1.2-dev.3`，基础版本取 `package.json`，同一基础版本下自动递增），设置页「关于」会显示编号和提交号；不生成更新签名，安装包放在 `src-tauri/target/dev-installer/`。程序内部的版本号是 `0.1.2+3`，装了测试包的电脑仍能正常更新到下一个正式版。每个测试包的提交记在本地 Git 引用 `refs/dev-builds/` 下，用来避免重号，并判断新包接着哪个包、还是另起一条线。
+Learnis 基于 [Tauri 2](https://tauri.app/)（Rust）+ React + TypeScript + SQLite 开发。欢迎在 [Issues](https://github.com/pinchuan54/Learnis/issues) 反馈问题和建议；开发环境、常用命令、代码结构和贡献者见 [CONTRIBUTING.md](CONTRIBUTING.md)。
 
-### 代码检查
+## 许可证
 
-```bash
-npm run check        # 一次性运行下面全部检查
-npm run typecheck    # TypeScript 类型检查
-npm run lint         # ESLint
-npm run format:check # Prettier 格式检查（npm run format 自动修复）
-npm test             # Vitest 单元测试
-npm run rust:fmt     # Rust 格式检查
-npm run rust:lint    # Clippy
-npm run rust:test    # Rust 单元测试
-```
-
-### 架构
-
-- **Rust 端是唯一的数据来源**：SQLite 存储、计划分配、计时、调整、统计都在 `src-tauri/src/domain` 中实现并配单元测试；前端只负责界面，通过命令读写数据。
-- **时间约定**：时间点存 UTC 毫秒；「哪一天」按设置中的时区计算，日界线为该时区 0 点，跨天的学习记录自动切分。
-- **计时可靠**：只记录开始 / 结束时间戳，关闭窗口、崩溃、重启都不会丢失计时。
-- **目标 = 基础分配 − 调出 + 调入**：创建计划时均分到学习日；没学够的时长挂起，可均分、拆分或顺延；学超的部分只计入总时长。
-
-数据文件位于应用数据目录（Windows：`%APPDATA%\io.github.pinchuan54.learnis\`），正式版为 `learnis.db`，开发版为 `learnis-dev.db`，互不影响。
-
-### 目录结构
-
-```
-src/                 前端（React + TypeScript）
-  api/               类型化的后端调用、数据查询（TanStack Query）与后台事件同步
-  components/        通用组件（顶部导航栏、窗口按钮、图标）
-    ui/              基础控件（按钮、面板、分段控件、开关、小日历、进度环、提示条）
-  features/          功能模块：计划、月历、计时器、日详情、未达标调整、检查更新
-  hooks/             通用 React 钩子
-  layouts/           页面外壳
-  pages/             各页面（今天 / 某天、月历、计划、设置）
-  theme/             外观（浅色 / 深色 / 跟随系统）
-  lib/               与界面无关的工具函数（配单元测试）
-  styles/            设计令牌、配色与通用区块样式
-public/              静态文件（渲染前应用外观的脚本）
-prototypes/          交互原型（独立网页，不参与构建）：timer-drag 是计时器拖动调时间的手感原型
-scripts/             发版脚本（生成自动更新用的 latest.json）
-src-tauri/src/       桌面端（Rust）
-  db/                SQLite 连接与表结构迁移
-  domain/            业务逻辑：计划分配、计时、调整、待办、设置、概览统计
-  desktop/           托盘、全局快捷键、计时监视（归零提醒、长时间提醒）、系统通知、开机自启与检查更新
-  commands.rs        暴露给前端的命令
-  time.rs            时区、日界线与跨天切分
-```
-
-## 版本
-
-版本号采用 `主版本.次版本.补丁` 格式，首个版本为 v0.1.0。之后几项改动攒在一起发布一个新版本：以修补和小改动为主时升补丁号（v0.1.1、v0.1.2……），有较大的新功能时升次版本号（v0.2.0）。
-
-给人工检查用的内部测试包另有编号，形如 `v0.1.2-dev.3`（基于 v0.1.2 的第 3 个测试包），不发布。
-
-## 贡献者
-
-<table>
-  <tr>
-    <td align="center">
-      <a href="https://github.com/pinchuan54">
-        <img src="https://github.com/pinchuan54.png?size=160" width="80" height="80" alt="pinchuan54" /><br />
-        <sub><b>pinchuan54</b></sub>
-      </a>
-    </td>
-    <td align="center">
-      <a href="https://github.com/claude">
-        <img src="https://github.com/claude.png?size=160" width="80" height="80" alt="Claude" /><br />
-        <sub><b>Claude</b></sub>
-      </a>
-    </td>
-  </tr>
-</table>
+[MIT](LICENSE) © 2026 pinchuan54
