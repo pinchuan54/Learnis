@@ -3,6 +3,7 @@
   "private": true,
   "version": "0.2.4",
   "description": "本地学习计划与计时软件",
+  "license": "MIT",
   "type": "module",
   "engines": {
     "node": ">=20.19"
