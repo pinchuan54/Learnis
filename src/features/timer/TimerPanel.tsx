@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router';
 import { api } from '../../api/client';
 import { useClock, usePlans, useSettings, useTimerStatus } from '../../api/hooks';
 import type { DayPlanEntry, TimerDisplay, TimerStyle } from '../../api/types';
-import { PauseIcon, PlayIcon } from '../../components/icons';
+import { ChevronRightIcon, PauseIcon, PlayIcon } from '../../components/icons';
 import { SegmentedControl } from '../../components/ui/SegmentedControl';
 import { zonedTimeToMs } from '../../lib/dates';
 import { formatMinutes, formatSeconds } from '../../lib/format';
@@ -37,6 +38,7 @@ export function TimerPanel({ entries }: { entries: DayPlanEntry[] }) {
   const { data: plans } = usePlans();
   const { data: clock } = useClock();
 
+  const navigate = useNavigate();
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [display, setDisplay] = useState<TimerDisplay | null>(null);
   const [style, setStyle] = useState<TimerStyle | null>(null);
@@ -136,11 +138,13 @@ export function TimerPanel({ entries }: { entries: DayPlanEntry[] }) {
               role="radio"
               aria-checked={plan.id === selected}
               className={plan.id === selected ? `${styles.chip} ${styles.chipOn}` : styles.chip}
-              onClick={() => setSelectedId(plan.id)}
+              // 点没选中的是选中它，点已选中的跳到计划页
+              onClick={() => (plan.id === selected ? navigate('/plans') : setSelectedId(plan.id))}
             >
               <span className={styles.chipDot} style={{ background: planColorVar(plan.color) }} />
               {plan.name}
               {running?.planId === plan.id && <span className={styles.live}>计时中</span>}
+              {plan.id === selected && <ChevronRightIcon className={styles.chipGo} />}
             </button>
           ))}
         </div>

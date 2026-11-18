@@ -43,9 +43,12 @@ export function GlobalNav() {
     <header className={styles.nav} data-tauri-drag-region>
       <div className={styles.brand}>
         <LogoMark className={styles.logo} />
-        <span className={styles.name} aria-hidden={settings?.showAppName === false}>
-          Learnis
-        </span>
+        {/* 设置读出来后才渲染：启动时直接是最终状态，只有在设置页切换时才播收起 / 展开 */}
+        {settings && (
+          <span className={styles.name} aria-hidden={!settings.showAppName}>
+            Learnis
+          </span>
+        )}
       </div>
 
       <nav className={styles.links} aria-label="主导航" data-tauri-drag-region>
@@ -58,6 +61,8 @@ export function GlobalNav() {
               aria-label={label}
               aria-current={active ? 'page' : undefined}
               className={active ? `${styles.link} ${styles.active}` : styles.link}
+              // 鼠标移开就交还焦点，下次停上来照常提示
+              onMouseLeave={(event) => event.currentTarget.blur()}
             >
               <Icon />
             </Link>
