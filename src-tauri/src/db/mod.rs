@@ -12,6 +12,7 @@ use crate::error::{AppError, AppResult};
 const MIGRATIONS: &[&str] = &[
     include_str!("migrations/0001_init.sql"),
     include_str!("migrations/0002_corrections.sql"),
+    include_str!("migrations/0003_session_heartbeat.sql"),
 ];
 
 /// 应用唯一的数据库连接。命令之间通过互斥锁串行访问。

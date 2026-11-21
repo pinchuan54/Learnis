@@ -1,7 +1,8 @@
 //! 学习记录：计时器开始 / 暂停、手动补录与学习时长统计。
 //!
-//! 计时只记录开始和结束时间戳；正在进行的计时 `end_at` 为空，
-//! 程序关闭或崩溃后重新打开，计时状态依然保留。
+//! 计时只记录开始和结束时间戳；正在进行的计时 `end_at` 为空，并由计时监视定期记心跳。
+//! 程序崩溃、安装更新后很快重开，计时接着走；关机、睡眠这类长时间断档，
+//! 计时停在断档开始处（见 [`keep_alive`]）。
 
 use std::collections::HashMap;
 
@@ -17,6 +18,10 @@ use crate::time::{day_start_ms, next_day, split_by_day};
 /// 短于 1 秒的计时视为误触，暂停时直接丢弃
 const MIN_SESSION_MS: i64 = 1000;
 const MAX_NOTE_CHARS: usize = 200;
+/// 计时进行中，每隔这么久记一次心跳
+const HEARTBEAT_MS: i64 = 10_000;
+/// 心跳断开超过这么久，说明期间关机、睡眠或程序没在运行
+const STALE_MS: i64 = 2 * 60_000;
 
 const SELECT_SESSION: &str = "SELECT id, plan_id, start_at, end_at, source, note FROM sessions";
 
@@ -61,8 +66,8 @@ pub fn start(conn: &Connection, ctx: &Ctx, plan_id: i64) -> AppResult<Session> {
         return Err(AppError::conflict("已经有一个计时正在进行"));
     }
     conn.execute(
-        "INSERT INTO sessions (plan_id, start_at, source, created_at, updated_at)
-         VALUES (?1, ?2, ?3, ?2, ?2)",
+        "INSERT INTO sessions (plan_id, start_at, alive_at, source, created_at, updated_at)
+         VALUES (?1, ?2, ?2, ?3, ?2, ?2)",
         params![plan_id, ctx.now_ms, SessionSource::Timer.as_str()],
     )?;
     get(conn, conn.last_insert_rowid())
@@ -93,6 +98,34 @@ pub fn stop_if_running(conn: &Connection, ctx: &Ctx, session_id: i64) -> AppResu
             Ok(true)
         }
         _ => Ok(false),
+    }
+}
+
+/// 计时心跳，由计时监视每秒调用：给正在进行的计时记下「还在走」的时刻。
+/// 心跳断开太久时，把计时停在最后一次心跳处，返回停下的时刻。
+pub fn keep_alive(conn: &Connection, ctx: &Ctx) -> AppResult<Option<i64>> {
+    let alive_at: Option<Option<i64>> = conn
+        .query_row(
+            "SELECT alive_at FROM sessions WHERE end_at IS NULL",
+            [],
+            |row| row.get(0),
+        )
+        .optional()?;
+    match alive_at {
+        None => Ok(None),
+        Some(Some(at)) if ctx.now_ms - at > STALE_MS => {
+            stop(conn, &Ctx::new(at, ctx.tz))?;
+            Ok(Some(at))
+        }
+        Some(Some(at)) if ctx.now_ms - at < HEARTBEAT_MS => Ok(None),
+        // 该记心跳了，或是旧版本开始的计时（还没有心跳，从现在开始记）
+        Some(_) => {
+            conn.execute(
+                "UPDATE sessions SET alive_at = ?1 WHERE end_at IS NULL",
+                [ctx.now_ms],
+            )?;
+            Ok(None)
+        }
     }
 }
 
@@ -279,6 +312,71 @@ mod tests {
         assert!(stop_if_running(&conn, &ctx_at("2026-11-02", 12), second.id).unwrap());
         assert!(running(&conn).unwrap().is_none());
         assert!(!stop_if_running(&conn, &ctx_at("2026-11-02", 13), second.id).unwrap());
+    }
+
+    fn alive_at(conn: &Connection) -> Option<i64> {
+        conn.query_row(
+            "SELECT alive_at FROM sessions ORDER BY id DESC LIMIT 1",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap()
+    }
+
+    #[test]
+    fn heartbeat_keeps_timer_running_through_short_gaps() {
+        let (conn, plan_id) = setup();
+        let ctx = ctx_at("2026-11-02", 9);
+        let start_at = ctx.now_ms;
+        start(&conn, &ctx, plan_id).unwrap();
+        let beat = |ms: i64| keep_alive(&conn, &Ctx::new(ms, ctx.tz)).unwrap();
+
+        // 每秒检查，每 10 秒记一次心跳
+        assert_eq!(beat(start_at + 9_000), None);
+        assert_eq!(alive_at(&conn), Some(start_at));
+        assert_eq!(beat(start_at + 10_000), None);
+        assert_eq!(alive_at(&conn), Some(start_at + 10_000));
+
+        // 崩溃、更新后 2 分钟内重开：计时接着走
+        assert_eq!(beat(start_at + 130_000), None);
+        assert_eq!(alive_at(&conn), Some(start_at + 130_000));
+        assert!(running(&conn).unwrap().is_some());
+    }
+
+    #[test]
+    fn long_gap_stops_timer_at_last_heartbeat() {
+        let (conn, plan_id) = setup();
+        let ctx = ctx_at("2026-11-02", 9);
+        start(&conn, &ctx, plan_id).unwrap();
+        let last = ctx.now_ms + HOUR_MS / 2;
+        for ms in (ctx.now_ms..=last).step_by(1000) {
+            assert_eq!(keep_alive(&conn, &Ctx::new(ms, ctx.tz)).unwrap(), None);
+        }
+
+        // 关机 10 小时后重开：计时停在关机前最后一次心跳
+        let reopened = Ctx::new(last + 10 * HOUR_MS, ctx.tz);
+        assert_eq!(keep_alive(&conn, &reopened).unwrap(), Some(last));
+        assert!(running(&conn).unwrap().is_none());
+        let studied =
+            studied_by_plan_day(&conn, &reopened, d("2026-11-02"), d("2026-11-02")).unwrap();
+        assert_eq!(studied[&(plan_id, d("2026-11-02"))], 1800);
+        assert_eq!(keep_alive(&conn, &reopened).unwrap(), None);
+    }
+
+    #[test]
+    fn timer_from_old_version_starts_heartbeat() {
+        let (conn, plan_id) = setup();
+        // 旧版本开始的计时没有心跳，升级后不判断断档
+        conn.execute(
+            "INSERT INTO sessions (plan_id, start_at, source, created_at, updated_at)
+             VALUES (?1, ?2, 'timer', ?2, ?2)",
+            params![plan_id, ms_at("2026-11-02", 9)],
+        )
+        .unwrap();
+        let ctx = ctx_at("2026-11-02", 10);
+        assert_eq!(keep_alive(&conn, &ctx).unwrap(), None);
+        assert_eq!(alive_at(&conn), Some(ctx.now_ms));
+        assert!(running(&conn).unwrap().is_some());
     }
 
     #[test]

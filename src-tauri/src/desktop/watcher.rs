@@ -2,7 +2,8 @@
 //!
 //! - 更新托盘提示（显示正在学的计划和今天已学时长）；
 //! - 倒计时归零（今天的目标学完）时提醒，计时继续，由用户决定是否暂停；
-//! - 单次计时超过设定时长时提醒休息。
+//! - 单次计时超过设定时长时提醒休息；
+//! - 记计时心跳，关机、睡眠后回来时计时已停在断档开始处，发通知说明。
 //!
 //! 在后台线程运行，窗口隐藏到托盘时依然有效。
 
@@ -10,7 +11,7 @@ use std::sync::Mutex;
 use std::thread;
 use std::time::Duration;
 
-use chrono::Utc;
+use chrono::{DateTime, Utc};
 use tauri::{AppHandle, Manager, Runtime};
 
 use super::reminder::{self, CountdownReminder};
@@ -18,7 +19,7 @@ use super::{notify, tray};
 use crate::db::Db;
 use crate::domain::model::TimerStatus;
 use crate::domain::settings::Settings;
-use crate::domain::{Ctx, overview, plans, settings};
+use crate::domain::{Ctx, overview, plans, sessions, settings};
 use crate::error::AppResult;
 use crate::time::resolve_timezone;
 
@@ -40,10 +41,47 @@ static STATE: Mutex<Option<WatchState>> = Mutex::new(None);
 pub fn spawn<R: Runtime>(app: AppHandle<R>) {
     thread::spawn(move || {
         loop {
+            keep_alive(&app);
             refresh_now(&app);
             thread::sleep(Duration::from_secs(1));
         }
     });
+}
+
+/// 记计时心跳；发现关机、睡眠留下的断档时计时已停下，通知用户并刷新界面
+fn keep_alive<R: Runtime>(app: &AppHandle<R>) {
+    let Some(db) = app.try_state::<Db>() else {
+        return;
+    };
+    let stopped = db.with(|conn| {
+        let ctx = Ctx::load(conn)?;
+        Ok(sessions::keep_alive(conn, &ctx)?.map(|at| format_moment(at, &ctx)))
+    });
+    match stopped {
+        Ok(Some(at)) => {
+            notify(
+                app,
+                "计时已自动暂停",
+                &format!("计时停在了 {at}：之后电脑关机、睡眠或退出了 Learnis，这段时间不计入"),
+            );
+            super::emit_timer_changed(app);
+        }
+        Ok(None) => {}
+        Err(err) => eprintln!("记录计时心跳失败：{err}"),
+    }
+}
+
+/// 通知里的时刻：今天只写时分，其他日子带上日期
+fn format_moment(ms: i64, ctx: &Ctx) -> String {
+    let time = DateTime::from_timestamp_millis(ms)
+        .unwrap_or_default()
+        .with_timezone(&ctx.tz);
+    let format = if time.date_naive() == ctx.today {
+        "%H:%M"
+    } else {
+        "%-m月%-d日 %H:%M"
+    };
+    time.format(format).to_string()
 }
 
 struct Snapshot {
@@ -259,6 +297,17 @@ mod tests {
         assert_eq!(format_minutes(45), "45 分钟");
         assert_eq!(format_minutes(120), "2 小时");
         assert_eq!(format_minutes(135), "2 小时 15 分钟");
+    }
+
+    #[test]
+    fn formats_moment_with_date_only_when_not_today() {
+        let ctx = Ctx::new(18 * 60 * MINUTE_MS, chrono_tz::Asia::Shanghai);
+        // 1970-01-02 02:00（北京时间）
+        assert_eq!(format_moment(18 * 60 * MINUTE_MS, &ctx), "02:00");
+        assert_eq!(
+            format_moment(15 * 60 * MINUTE_MS + 41 * MINUTE_MS, &ctx),
+            "1月1日 23:41"
+        );
     }
 
     #[test]

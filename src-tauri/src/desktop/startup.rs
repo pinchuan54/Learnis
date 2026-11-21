@@ -1,7 +1,8 @@
 //! 开机自启与静默启动。
 //!
-//! - 开机自启用官方插件登记到系统（Windows 为当前用户的启动项，不需要管理员权限），
-//!   登记的命令行带上 [`AUTOSTART_ARG`]，用来区分「开机自启」和「手动打开」；
+//! - 开机自启用官方插件登记到系统（Windows 写注册表启动项：有管理员权限时登记给所有用户，
+//!   否则只登记给当前用户），登记的命令行带上 [`AUTOSTART_ARG`]，用来区分「开机自启」和「手动打开」；
+//! - 登记的是程序路径，换目录重装后会失效，所以每次启动按当前路径重新登记；
 //! - 主窗口在配置里默认隐藏，启动时由这里决定是否显示：
 //!   只有「开机自启 + 打开了静默启动」才留在托盘，手动打开总是显示窗口；
 //! - 安装更新后，安装器会带着原来的启动参数重新打开 Learnis，
@@ -57,6 +58,16 @@ pub fn set_autostart<R: Runtime>(app: &AppHandle<R>, enabled: bool) -> AppResult
         AppError::Internal(format!("{action}开机自启失败：{err}"))
     })?;
     autostart_enabled(app)
+}
+
+/// 已开启开机自启时，按当前程序路径重新登记一次。
+/// 系统判断「已开启」只看登记在不在、不核对路径，换目录重装后开关亮着、开机却不启动。
+pub fn refresh_autostart<R: Runtime>(app: &AppHandle<R>) {
+    if autostart_enabled(app).unwrap_or(false)
+        && let Err(err) = set_autostart(app, true)
+    {
+        eprintln!("重新登记开机自启失败：{err}");
+    }
 }
 
 /// 启动时是否只留在托盘、不显示窗口
