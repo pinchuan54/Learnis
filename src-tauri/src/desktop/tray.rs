@@ -1,24 +1,26 @@
-//! 系统托盘：显示窗口、开始 / 暂停计时、退出；悬停提示当前计时。
+//! 系统托盘：显示窗口、开始 / 暂停计时、悬浮窗、退出；悬停提示当前计时。
 
-use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
+use tauri::menu::{CheckMenuItem, Menu, MenuItem, PredefinedMenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::{AppHandle, Manager, Runtime};
 
-use super::{show_main_window, toggle_timer};
+use super::{float, show_main_window, toggle_timer};
 
 const TRAY_ID: &str = "learnis";
 
-/// 托盘菜单中需要动态更新文字的项
+/// 托盘菜单中需要动态更新的项
 pub struct TrayItems<R: Runtime> {
     toggle: MenuItem<R>,
+    float: CheckMenuItem<R>,
 }
 
 pub fn create<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
     let show = MenuItem::with_id(app, "show", "打开 Learnis", true, None::<&str>)?;
     let toggle = MenuItem::with_id(app, "toggle", "开始计时", true, None::<&str>)?;
+    let float = CheckMenuItem::with_id(app, "float", "悬浮窗", true, false, None::<&str>)?;
     let quit = MenuItem::with_id(app, "quit", "退出 Learnis", true, None::<&str>)?;
     let separator = PredefinedMenuItem::separator(app)?;
-    let menu = Menu::with_items(app, &[&show, &toggle, &separator, &quit])?;
+    let menu = Menu::with_items(app, &[&show, &toggle, &float, &separator, &quit])?;
 
     let mut builder = TrayIconBuilder::with_id(TRAY_ID)
         .tooltip("Learnis")
@@ -27,6 +29,7 @@ pub fn create<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
         .on_menu_event(|app, event| match event.id().as_ref() {
             "show" => show_main_window(app),
             "toggle" => toggle_timer(app),
+            "float" => float::toggle(app),
             "quit" => app.exit(0),
             _ => {}
         })
@@ -45,8 +48,15 @@ pub fn create<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
     }
     builder.build(app)?;
 
-    app.manage(TrayItems { toggle });
+    app.manage(TrayItems { toggle, float });
     Ok(())
+}
+
+/// 托盘菜单「悬浮窗」的勾选跟着悬浮窗开关
+pub fn set_float_open<R: Runtime>(app: &AppHandle<R>, open: bool) {
+    if let Some(items) = app.try_state::<TrayItems<R>>() {
+        let _ = items.float.set_checked(open);
+    }
 }
 
 /// 隐藏托盘图标。进程被直接结束（例如安装更新）前调用，避免残留图标。

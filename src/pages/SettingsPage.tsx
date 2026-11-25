@@ -11,6 +11,9 @@ import {
   useUpdateSettings,
 } from '../api/hooks';
 import type {
+  FloatFlow,
+  FloatForm,
+  FloatSkin,
   Settings,
   ShortfallDefault,
   TimerDisplay,
@@ -21,6 +24,7 @@ import type {
 import {
   ArrowUpRightIcon,
   CheckIcon,
+  FloatIcon,
   InfoIcon,
   PaletteIcon,
   SlidersIcon,
@@ -75,6 +79,7 @@ const PAGES = [
   { id: 'general', label: '通用', Icon: SlidersIcon, Content: GeneralSettings },
   { id: 'appearance', label: '外观', Icon: PaletteIcon, Content: AppearanceSettings },
   { id: 'timer', label: '计时', Icon: StopwatchIcon, Content: TimerSettings },
+  { id: 'float', label: '悬浮窗', Icon: FloatIcon, Content: FloatSettings },
   { id: 'plans', label: '计划', Icon: TargetIcon, Content: PlanSettings },
   { id: 'about', label: '关于', Icon: InfoIcon, Content: AboutSettings },
 ];
@@ -249,6 +254,176 @@ function TimerSettings({ settings, save }: PageProps) {
         </ul>
       </Section>
     </>
+  );
+}
+
+const FLOAT_FORMS: { value: FloatForm; label: string }[] = [
+  { value: 'minimal', label: '极简' },
+  { value: 'flip', label: '翻页' },
+  { value: 'dial', label: '小圆表' },
+];
+
+const FLOAT_FLOWS: { value: FloatFlow; label: string }[] = [
+  { value: 'ruler', label: '刻度带' },
+  { value: 'minuteLine', label: '分钟线' },
+  { value: 'pulse', label: '秒脉搏' },
+  { value: 'none', label: '不显示' },
+];
+
+const FLOAT_SKINS: { value: FloatSkin; label: string }[] = [
+  { value: 'follow', label: '跟随外观' },
+  { value: 'island', label: '灵动岛黑' },
+];
+
+function FloatSettings({ settings, save }: PageProps) {
+  const flip = settings.floatForm === 'flip';
+  return (
+    <>
+      <Section
+        title="悬浮窗"
+        text="在 AE 等软件里学习时，悬浮窗浮在最上面显示计时。鼠标停上去可以开始或暂停，按住拖动换位置，双击回到主窗口，右键有更多选项。"
+      >
+        <ul className={styles.group}>
+          <SettingRow
+            title="关掉主窗口时自动出现"
+            hint="计时中把主窗口关到托盘或最小化，悬浮窗接着显示时间"
+          >
+            <Switch
+              label="关掉主窗口时自动出现"
+              checked={settings.floatAuto}
+              onChange={(floatAuto) => save({ floatAuto })}
+            />
+          </SettingRow>
+          <SettingRow
+            title="显示 / 隐藏悬浮窗"
+            hint="全局快捷键；顶栏右上角的按钮和托盘菜单也能打开。点击后按下新的组合键"
+          >
+            <HotkeyField
+              value={settings.floatHotkey}
+              onSave={(floatHotkey) => save({ floatHotkey })}
+            />
+          </SettingRow>
+          <SettingRow title="锁定位置" hint="锁定后拖不动，防止误碰">
+            <Switch
+              label="锁定位置"
+              checked={settings.floatLocked}
+              onChange={(floatLocked) => save({ floatLocked })}
+            />
+          </SettingRow>
+        </ul>
+      </Section>
+
+      <Section title="外观" text="悬浮窗的右键菜单里也能直接换形态、时间流逝感和大小。">
+        <ul className={styles.group}>
+          <SettingRow title="形态">
+            <SegmentedControl<FloatForm>
+              ariaLabel="形态"
+              options={FLOAT_FORMS}
+              value={settings.floatForm}
+              onChange={(floatForm) => save({ floatForm })}
+            />
+          </SettingRow>
+          <SettingRow
+            title="一直显示按钮"
+            hint="极简和翻页的开始 / 暂停按钮一直露着，不用先把鼠标移上去"
+            disabled={settings.floatForm === 'dial'}
+          >
+            <Switch
+              label="一直显示按钮"
+              checked={settings.floatPinButton}
+              onChange={(floatPinButton) => save({ floatPinButton })}
+            />
+          </SettingRow>
+          <SettingRow
+            title="时间流逝感"
+            hint="一直在动、表示时间在走的部分；翻页本身每秒翻一张，用不上这一项"
+            disabled={flip}
+          >
+            <SegmentedControl<FloatFlow>
+              ariaLabel="时间流逝感"
+              options={FLOAT_FLOWS}
+              value={settings.floatFlow}
+              onChange={(floatFlow) => save({ floatFlow })}
+            />
+          </SettingRow>
+          <SettingRow
+            title="显示今天的进度"
+            hint="极简是流动的底色，小圆表是进度环；正计时亮走过的，倒计时亮还剩的"
+            disabled={flip}
+          >
+            <Switch
+              label="显示今天的进度"
+              checked={settings.floatProgress}
+              onChange={(floatProgress) => save({ floatProgress })}
+            />
+          </SettingRow>
+          <SettingRow title="翻页底部的进度细线" hint="翻页单独设置，默认不显示" disabled={!flip}>
+            <Switch
+              label="翻页底部的进度细线"
+              checked={settings.floatFlipProgress}
+              onChange={(floatFlipProgress) => save({ floatFlipProgress })}
+            />
+          </SettingRow>
+          <SettingRow title="配色">
+            <SegmentedControl<FloatSkin>
+              ariaLabel="配色"
+              options={FLOAT_SKINS}
+              value={settings.floatSkin}
+              onChange={(floatSkin) => save({ floatSkin })}
+            />
+          </SettingRow>
+          <SettingRow title="大小" hint="也可以在悬浮窗上按住 Ctrl 滚动滚轮">
+            <ScaleField
+              key={settings.floatScale}
+              value={settings.floatScale}
+              onSave={(floatScale) => save({ floatScale })}
+            />
+          </SettingRow>
+          <SettingRow
+            title="悬停时显示拖角"
+            hint="鼠标停在悬浮窗上时，右下角出现一小段弧，拖它缩放"
+          >
+            <Switch
+              label="悬停时显示拖角"
+              checked={settings.floatGrip}
+              onChange={(floatGrip) => save({ floatGrip })}
+            />
+          </SettingRow>
+          <SettingRow title="不用时变淡" hint="鼠标离开一会儿后变成半透明">
+            <Switch
+              label="不用时变淡"
+              checked={settings.floatDim}
+              onChange={(floatDim) => save({ floatDim })}
+            />
+          </SettingRow>
+        </ul>
+      </Section>
+    </>
+  );
+}
+
+/** 悬浮窗大小滑块：拖动时只改显示，松手再保存（外面换了值时整个重建，草稿随之清掉） */
+function ScaleField({ value, onSave }: { value: number; onSave: (value: number) => void }) {
+  const [draft, setDraft] = useState<number | null>(null);
+  const commit = () => {
+    if (draft !== null && draft !== value) onSave(draft);
+  };
+  return (
+    <div className={styles.range}>
+      <input
+        type="range"
+        min={80}
+        max={200}
+        step={5}
+        value={draft ?? value}
+        aria-label="悬浮窗大小"
+        onChange={(event) => setDraft(Number(event.target.value))}
+        onPointerUp={commit}
+        onKeyUp={commit}
+        onBlur={commit}
+      />
+      <span className={styles.rangeValue}>{draft ?? value}%</span>
+    </div>
   );
 }
 
@@ -451,14 +626,17 @@ function Section({ title, text, children }: { title: string; text?: string; chil
 function SettingRow({
   title,
   hint,
+  disabled,
   children,
 }: {
   title: string;
   hint?: string;
+  /** 当前用不上（例如和所选形态无关）时变淡 */
+  disabled?: boolean;
   children: ReactNode;
 }) {
   return (
-    <li className={styles.settingRow}>
+    <li className={styles.settingRow} aria-disabled={disabled || undefined}>
       <div className={styles.settingText}>
         <span className={styles.settingTitle}>{title}</span>
         {hint && <span className={styles.settingHint}>{hint}</span>}

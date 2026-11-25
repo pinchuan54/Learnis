@@ -3,14 +3,16 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef } from 'react';
 import { inTauri } from '../lib/platform';
 import { api } from './client';
+import { DATA_CHANGED_EVENT, isOwnDataChange } from './dataChanged';
 import { useClock } from './hooks';
 
 /**
- * 后台发出、需要刷新数据的事件：
+ * 需要刷新数据的事件：
  * - 与 Rust 端 desktop::TIMER_CHANGED_EVENT 一致：托盘、快捷键、通知按钮改变了计时；
- * - 与 Rust 端 desktop::reminder::COUNTDOWN_REMINDER_EVENT 一致：倒计时归零提醒出现或被处理。
+ * - 与 Rust 端 desktop::reminder::COUNTDOWN_REMINDER_EVENT 一致：倒计时归零提醒出现或被处理；
+ * - 另一个窗口（主窗口 / 悬浮窗）改了数据。
  */
-const REFRESH_EVENTS = ['timer-changed', 'countdown-reminder'];
+const REFRESH_EVENTS = ['timer-changed', 'countdown-reminder', DATA_CHANGED_EVENT];
 
 /**
  * 保持界面与后台一致：
@@ -27,7 +29,8 @@ export function useBackendSync() {
     let disposed = false;
     const unlisteners: (() => void)[] = [];
     for (const event of REFRESH_EVENTS) {
-      listen(event, () => {
+      listen(event, ({ payload }) => {
+        if (event === DATA_CHANGED_EVENT && isOwnDataChange(payload)) return;
         void queryClient.invalidateQueries();
       })
         .then((fn) => {

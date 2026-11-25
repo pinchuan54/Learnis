@@ -119,6 +119,24 @@
   align-self: stretch;
 }
 
+/* 进入悬浮窗：和导航图标一样的悬停底色与提示，按下回弹 */
+.floatButton {
+  width: 32px;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  cursor: default;
+}
+
+.floatButton svg {
+  transition: transform 420ms var(--ease-spring);
+}
+
+.floatButton:active svg {
+  transform: scale(0.8);
+  transition: transform 100ms var(--ease-standard);
+}
+
 /* 正在计时的小胶囊 */
 .pill {
   display: inline-flex;

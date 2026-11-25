@@ -381,8 +381,35 @@
   color: var(--color-text-secondary);
 }
 
+/* 当前形态用不上的设置项变淡 */
+.settingRow[aria-disabled='true'] {
+  opacity: 0.4;
+  pointer-events: none;
+  transition: opacity var(--duration-normal) var(--ease-standard);
+}
+
 .control {
   flex: none;
+}
+
+/* 悬浮窗大小：滑块 + 百分比 */
+.range {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.range input {
+  width: 160px;
+  accent-color: var(--color-accent);
+}
+
+.rangeValue {
+  width: 3.5em;
+  text-align: right;
+  font-size: var(--text-footnote);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-secondary);
 }
 
 .select {

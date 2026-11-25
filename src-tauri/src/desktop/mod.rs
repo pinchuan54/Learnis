@@ -1,5 +1,6 @@
-//! 桌面端系统集成：托盘、全局快捷键、计时监视与系统通知、倒计时归零提醒、关闭到托盘、开机自启、检查更新。
+//! 桌面端系统集成：托盘、全局快捷键、悬浮窗、计时监视与系统通知、倒计时归零提醒、关闭到托盘、开机自启、检查更新。
 
+pub mod float;
 pub mod hotkey;
 pub mod reminder;
 pub mod startup;
@@ -29,13 +30,14 @@ pub fn setup<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
     Ok(())
 }
 
-/// 显示并聚焦主窗口
+/// 显示并聚焦主窗口；主窗口和悬浮窗同时只出现一个，所以顺带关掉悬浮窗
 pub fn show_main_window<R: Runtime>(app: &AppHandle<R>) {
     if let Some(window) = app.get_webview_window("main") {
         let _ = window.unminimize();
         let _ = window.show();
         let _ = window.set_focus();
     }
+    float::close(app);
 }
 
 /// 主窗口当前是否在前台（在前台时不必再弹系统通知）

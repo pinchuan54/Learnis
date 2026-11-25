@@ -35,14 +35,24 @@ pub fn run() {
         // 检查更新、开机自启都只由后端命令调用，前端不直接使用插件，所以不需要额外权限
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(desktop::startup::plugin())
-        // 设置为「关闭到托盘」时，关闭窗口只是隐藏
+        // 主窗口：设置为「关闭到托盘」时关闭只是隐藏；关到托盘或最小化时按设置打开悬浮窗，
+        // 回到前台时关掉悬浮窗（两者同时只出现一个）
         .on_window_event(|window, event| {
-            if let tauri::WindowEvent::CloseRequested { api, .. } = event
-                && window.label() == "main"
-                && desktop::close_to_tray(window.app_handle())
-            {
-                api.prevent_close();
-                let _ = window.hide();
+            if window.label() != "main" {
+                return;
+            }
+            let app = window.app_handle();
+            match event {
+                tauri::WindowEvent::CloseRequested { api, .. } if desktop::close_to_tray(app) => {
+                    api.prevent_close();
+                    let _ = window.hide();
+                    desktop::float::main_window_left(app);
+                }
+                tauri::WindowEvent::Resized(_) if window.is_minimized().unwrap_or(false) => {
+                    desktop::float::main_window_left(app);
+                }
+                tauri::WindowEvent::Focused(true) => desktop::float::close(app),
+                _ => {}
             }
         });
 
@@ -99,6 +109,12 @@ pub fn run() {
             commands::get_autostart,
             #[cfg(desktop)]
             commands::set_autostart,
+            #[cfg(desktop)]
+            commands::enter_float,
+            #[cfg(desktop)]
+            commands::close_float,
+            #[cfg(desktop)]
+            commands::open_main_window,
         ])
         .run(tauri::generate_context!())
         .expect("启动 Learnis 失败");
