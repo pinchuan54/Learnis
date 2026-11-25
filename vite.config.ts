@@ -1,4 +1,5 @@
 import process from 'node:process';
+import { fileURLToPath } from 'node:url';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vitest/config';
 import pkg from './package.json' with { type: 'json' };
@@ -37,6 +38,13 @@ export default defineConfig({
     target: process.env.TAURI_ENV_PLATFORM === 'windows' ? 'chrome105' : 'safari15',
     minify: !isDebug,
     sourcemap: isDebug,
+    // 两个页面：主窗口和悬浮窗（悬浮窗只加载自己用到的部分）
+    rollupOptions: {
+      input: {
+        main: fileURLToPath(new URL('./index.html', import.meta.url)),
+        float: fileURLToPath(new URL('./float.html', import.meta.url)),
+      },
+    },
   },
 
   test: {

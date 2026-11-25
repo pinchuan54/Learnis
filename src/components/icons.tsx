@@ -11,6 +11,7 @@ export {
   Info as InfoIcon,
   Palette as PaletteIcon,
   Pencil as PencilIcon,
+  PictureInPicture2 as FloatIcon,
   Plus as PlusIcon,
   Settings as SettingsIcon,
   SlidersHorizontal as SlidersIcon,

@@ -122,6 +122,14 @@ export const api = {
   deleteTodo: (id: number) => call<void>('delete_todo', { id }),
   reorderTodos: (date: string, ids: number[]) => call<Todo[]>('reorder_todos', { date, ids }),
 
+  // 悬浮窗
+  /** 收起主窗口、打开悬浮窗 */
+  enterFloat: () => call<void>('enter_float'),
+  /** 关掉悬浮窗 */
+  closeFloat: () => call<void>('close_float'),
+  /** 回到主窗口，悬浮窗随之关掉 */
+  openMainWindow: () => call<void>('open_main_window'),
+
   // 关于与更新
   openProjectPage: () => call<void>('open_project_page'),
   checkUpdate: () => call<UpdateInfo | null>('check_update'),

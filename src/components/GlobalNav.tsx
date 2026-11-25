@@ -1,11 +1,19 @@
 import { Link, useLocation } from 'react-router';
+import { api } from '../api/client';
 import { usePlans, useSettings, useTimerStatus } from '../api/hooks';
 import { useLiveLearned } from '../features/timer/liveLearned';
 import { useNow } from '../hooks/useNow';
 import { formatClock } from '../lib/format';
 import { planColorVar } from '../lib/planColors';
 import { inTauri } from '../lib/platform';
-import { CalendarIcon, LogoMark, SettingsIcon, StopwatchIcon, TargetIcon } from './icons';
+import {
+  CalendarIcon,
+  FloatIcon,
+  LogoMark,
+  SettingsIcon,
+  StopwatchIcon,
+  TargetIcon,
+} from './icons';
 import styles from './GlobalNav.module.css';
 import { WindowControls } from './WindowControls';
 
@@ -72,6 +80,17 @@ export function GlobalNav() {
 
       <div className={styles.trailing} data-tauri-drag-region>
         <TimerPill />
+        {inTauri && (
+          <button
+            type="button"
+            className={`${styles.link} ${styles.floatButton}`}
+            aria-label="进入悬浮窗"
+            onClick={() => void api.enterFloat()}
+            onMouseLeave={(event) => event.currentTarget.blur()}
+          >
+            <FloatIcon />
+          </button>
+        )}
         {inTauri && <WindowControls />}
       </div>
     </header>

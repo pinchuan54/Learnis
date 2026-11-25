@@ -220,7 +220,37 @@ export interface Settings {
   showCalendarLegend: boolean;
   /** 顶部导航左上角显示应用名称（关闭后只显示标志） */
   showAppName: boolean;
+  /** 计时中把主窗口关到托盘或最小化时，自动出现悬浮窗 */
+  floatAuto: boolean;
+  /** 显示 / 隐藏悬浮窗的全局快捷键 */
+  floatHotkey: string;
+  floatForm: FloatForm;
+  floatFlow: FloatFlow;
+  /** 极简、小圆表显示今天的进度 */
+  floatProgress: boolean;
+  /** 翻页底部的进度细线（单独设置，默认不显示） */
+  floatFlipProgress: boolean;
+  floatSkin: FloatSkin;
+  /** 悬浮窗大小，百分比（80 ~ 200） */
+  floatScale: number;
+  /** 开始 / 暂停按钮一直显示（极简、翻页） */
+  floatPinButton: boolean;
+  /** 悬停时显示右下角的拖角 */
+  floatGrip: boolean;
+  /** 鼠标离开一会儿后变成半透明 */
+  floatDim: boolean;
+  /** 锁定位置，拖不动 */
+  floatLocked: boolean;
 }
+
+/** 悬浮窗形态：极简 / 翻页 / 小圆表 */
+export type FloatForm = 'minimal' | 'flip' | 'dial';
+
+/** 悬浮窗的时间流逝感：刻度带 / 分钟线 / 秒脉搏 / 不显示 */
+export type FloatFlow = 'ruler' | 'minuteLine' | 'pulse' | 'none';
+
+/** 悬浮窗配色：跟随浅色 / 深色，或固定的纯黑 */
+export type FloatSkin = 'follow' | 'island';
 
 /** 等待用户处理的倒计时归零提醒 */
 export interface CountdownReminder {

@@ -1,0 +1,904 @@
+/*
+ * 悬浮窗页面（float.html）自己的样式，样式和动效照原型第 7 版定稿。
+ * 这个页面只有悬浮窗，类名不会和主窗口冲突，所以直接用全局类名。
+ *
+ * 结构：.float 铺满透明窗口，按贴边方向对齐内容；.fa 管出现动画，.fz 管大小（zoom）和变淡；
+ * .w 是三种形态（.w-b 极简、.w-d 翻页、.w-c 小圆表）。计划颜色 --plan 由脚本按计划设置。
+ */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: transparent;
+}
+body {
+  font-family: var(--font-sans);
+  cursor: default;
+  user-select: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 窗口四周留出的边距：放投影、悬停放大和按钮展开的空间。和 geometry.ts 的 PAD 保持一致 */
+.float {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 16px 18px 22px;
+}
+.float[data-ax='left'] {
+  justify-content: flex-start;
+}
+.float[data-ax='right'] {
+  justify-content: flex-end;
+}
+.float[data-ay='top'] {
+  align-items: flex-start;
+}
+.float[data-ay='bottom'] {
+  align-items: flex-end;
+}
+.float.dragging {
+  cursor: grabbing;
+}
+.fz {
+  transition: opacity 0.5s ease 1.2s;
+}
+.float:hover .fz {
+  transition-delay: 0s;
+}
+.float.dim:not(:hover):not(.dragging) .fz {
+  opacity: 0.5;
+}
+.fz {
+  position: relative;
+}
+/* 拖角：参考 iPadOS 台前调度窗口右下角的弧形把手。贴着悬浮窗圆角的外沿（同心、隔 2px）画一小段弧，
+   两头渐隐；鼠标停在悬浮窗上才淡淡出现，指到弧上或拖动时变清楚，拖它按比例缩放 */
+.grip {
+  --gr: 16px;
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  display: none;
+  width: calc(var(--gr) + 4px);
+  height: calc(var(--gr) + 4px);
+  border: solid var(--w-fg2);
+  border-width: 0 2px 2px 0;
+  border-bottom-right-radius: calc(var(--gr) + 4px);
+  -webkit-mask-image: linear-gradient(45deg, transparent 20%, #000 40%, #000 60%, transparent 80%);
+  mask-image: linear-gradient(45deg, transparent 20%, #000 40%, #000 60%, transparent 80%);
+  opacity: 0;
+  pointer-events: none;
+  cursor: nwse-resize;
+  transition: opacity 0.25s ease;
+}
+.float[data-form='flip'] .grip {
+  --gr: 10px;
+}
+.float[data-form='dial'] .grip {
+  --gr: 28px;
+}
+.float.has-grip .grip {
+  display: block;
+}
+.float.has-grip.open .grip {
+  opacity: 0.4;
+  pointer-events: auto;
+}
+.float.has-grip .grip:hover,
+.float.resizing .grip {
+  opacity: 0.9;
+}
+/* 三套配色：浅色、深色跟着 Learnis 的外观走，灵动岛黑固定（页面按深色取计划颜色）。
+   计划颜色、超时橙用 palette.css 里的变量，跟着 <html data-theme> 切换。
+   投影比原型收一点，窗口边距放得下，不会被窗口边缘切掉 */
+.float {
+  --over: var(--status-overtime);
+}
+.float[data-skin='light'] {
+  --w-bg: #ffffff;
+  --w-fg: #1d1d1f;
+  --w-fg2: #86868b;
+  --w-track: rgba(0, 0, 0, 0.08);
+  --w-edge: rgba(0, 0, 0, 0.1);
+  --w-shadow: 0 4px 12px rgba(0, 0, 0, 0.14), 0 1px 3px rgba(0, 0, 0, 0.08);
+  --w-btn: rgba(0, 0, 0, 0.05);
+  --w-btn-hover: rgba(0, 0, 0, 0.09);
+}
+.float[data-skin='dark'],
+.float[data-skin='island'] {
+  --w-bg: #1d1d1f;
+  --w-fg: #f5f5f7;
+  --w-fg2: #8e8e93;
+  --w-track: rgba(255, 255, 255, 0.12);
+  --w-edge: rgba(255, 255, 255, 0.12);
+  --w-shadow: 0 5px 14px rgba(0, 0, 0, 0.5), 0 1px 3px rgba(0, 0, 0, 0.3);
+  --w-btn: rgba(255, 255, 255, 0.08);
+  --w-btn-hover: rgba(255, 255, 255, 0.14);
+}
+.float[data-skin='island'] {
+  --w-bg: #000000;
+  --w-fg: #ffffff;
+  --w-track: rgba(255, 255, 255, 0.16);
+  --w-edge: rgba(255, 255, 255, 0.07);
+  --w-shadow: 0 5px 14px rgba(0, 0, 0, 0.35), 0 1px 3px rgba(0, 0, 0, 0.2);
+  --w-btn: rgba(255, 255, 255, 0.1);
+  --w-btn-hover: rgba(255, 255, 255, 0.17);
+}
+
+.w {
+  display: none;
+  align-items: center;
+  background: var(--w-bg);
+  color: var(--w-fg);
+  box-shadow:
+    0 0 0 0.5px var(--w-edge),
+    var(--w-shadow);
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  transform-origin: var(--ox) var(--oy);
+  transition:
+    background-color 0.35s ease,
+    color 0.35s ease,
+    box-shadow 0.35s ease,
+    padding 0.34s cubic-bezier(0.32, 1.28, 0.5, 1),
+    transform 0.26s var(--ease-spring),
+    scale 0.34s cubic-bezier(0.32, 1.28, 0.5, 1),
+    translate 0.34s cubic-bezier(0.32, 1.28, 0.5, 1);
+}
+/* 悬停展开时整体再微微放大、投影加深，像轻轻浮起来。放大的中心跟着贴边走：
+   贴右以右边为中心，右边缘仍然贴住；贴左以左边；没贴边以正中（内容在窗口里居中，展开时两边各长一半） */
+.float {
+  --ox: center;
+  --oy: center;
+}
+.float[data-ax='left'] {
+  --ox: left;
+}
+.float[data-ax='right'] {
+  --ox: right;
+}
+.float[data-ay='top'] {
+  --oy: top;
+}
+.float[data-ay='bottom'] {
+  --oy: bottom;
+}
+.float.open .w {
+  scale: 1.04;
+  box-shadow:
+    0 0 0 0.5px var(--w-edge),
+    var(--w-lift);
+}
+.float[data-skin='light'] {
+  --w-lift: 0 7px 16px rgba(0, 0, 0, 0.18), 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+.float:is([data-skin='dark'], [data-skin='island']) {
+  --w-lift: 0 8px 18px rgba(0, 0, 0, 0.55), 0 2px 6px rgba(0, 0, 0, 0.35);
+}
+.float[data-form='flip'] .w-d,
+.float[data-form='minimal'] .w-b {
+  display: flex;
+}
+.float[data-form='dial'] .w-c {
+  display: grid;
+}
+.float.dragging .w {
+  transform: scale(1.05);
+}
+.tg {
+  border: 0;
+  padding: 0;
+  font: inherit;
+  cursor: default;
+}
+.tg:focus-visible {
+  outline: 2px solid var(--plan);
+  outline-offset: 2px;
+  box-shadow: none;
+}
+
+/* 时间：每一位单独滚动，静止时只显示当前数字 */
+.w-time {
+  display: inline-flex;
+  transition: color 0.35s ease;
+}
+.float:not(.running) .w-time {
+  color: var(--w-fg2);
+  transition-delay: 0.12s;
+}
+.float.over .w-time {
+  color: var(--over);
+}
+.s {
+  display: inline-block;
+  position: relative;
+  overflow: hidden;
+  height: 1.3em;
+  line-height: 1.3em;
+  vertical-align: top;
+}
+.s.rolling {
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    #000 24%,
+    #000 76%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(to bottom, transparent 0, #000 24%, #000 76%, transparent 100%);
+}
+.c {
+  display: block;
+}
+.c.out {
+  position: absolute;
+  inset: 0;
+}
+.s.colon .c {
+  transform: translateY(-0.07em);
+}
+
+/* 播放 ⇄ 暂停：三角形拆成两块四边形，和两根竖条互相变形 */
+.pp path {
+  fill: currentColor;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linejoin: round;
+  transition: d 0.34s var(--ease-out);
+}
+.float.running .pp .p1 {
+  d: path('M7 5L10.5 5L10.5 19L7 19Z');
+}
+.float.running .pp .p2 {
+  d: path('M13.5 5L17 5L17 19L13.5 19Z');
+}
+.float:not(.running) .pp .p1 {
+  d: path('M8 5L13.5 8.5L13.5 15.5L8 19Z');
+}
+.float:not(.running) .pp .p2 {
+  d: path('M13.5 8.5L19 12L19 12L13.5 15.5Z');
+}
+
+/* 进度环：今天这个计划学了多少，超过目标变橙 */
+.ring,
+.c-ring {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+  overflow: visible;
+}
+.ring circle,
+.c-ring circle {
+  fill: none;
+}
+.track {
+  stroke: var(--w-track);
+}
+.arc {
+  stroke: var(--plan);
+  stroke-linecap: round;
+  stroke-dasharray: 100 100;
+  transition:
+    stroke-dashoffset 0.8s var(--ease-out),
+    stroke 0.35s ease,
+    opacity 0.35s ease;
+}
+.float:not(.running) .arc {
+  opacity: 0.5;
+}
+.float.extra .arc {
+  stroke: var(--over);
+}
+
+/* 翻页：时、分、秒三张小牌（不到 1 小时不显示时），每秒只有秒那张翻；正计时往下翻，倒计时往上翻 */
+.w-d {
+  position: relative;
+  gap: 3px;
+  height: 34px;
+  padding: 0 5px;
+  border-radius: 10px;
+  font-size: 15px;
+  --d-card: #f0f0f3;
+}
+.float:is([data-skin='dark'], [data-skin='island']) .w-d {
+  --d-card: #2c2c2e;
+}
+.float[data-skin='island'] .w-d {
+  --d-card: #1c1c1e;
+}
+.btn-d {
+  flex: none;
+  width: 0;
+  height: 22px;
+  margin-right: -3px;
+  border-radius: 50%;
+  background: var(--plan);
+  color: #ffffff;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  transition:
+    width 0.34s cubic-bezier(0.32, 1.28, 0.5, 1),
+    margin 0.34s cubic-bezier(0.32, 1.28, 0.5, 1),
+    scale 0.36s var(--ease-spring);
+}
+.float:is(.open, .pin) .btn-d,
+.w-d:has(:focus-visible) .btn-d {
+  width: 22px;
+  margin: 0 2px 0 0;
+}
+.btn-d:active {
+  scale: 0.8;
+  transition-duration: 0.34s, 0.34s, 0.1s;
+}
+.btn-d .pp {
+  flex: none;
+  width: 12px;
+  height: 12px;
+}
+.fc {
+  position: relative;
+  display: inline-block;
+  height: 24px;
+  padding: 0 4px;
+  border-radius: 5px;
+  background: var(--d-card);
+  line-height: 24px;
+  perspective: 70px;
+  transition: color 0.35s ease;
+}
+.float:not(.running) .fc {
+  color: var(--w-fg2);
+  transition-delay: 0.12s;
+}
+.float.over .fc {
+  color: var(--over);
+}
+.sz {
+  visibility: hidden;
+  font-style: normal;
+}
+.half,
+.flap {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 12px;
+  overflow: hidden;
+  background: var(--d-card);
+  text-align: center;
+}
+.half.up,
+.flap.up {
+  top: 0;
+  border-radius: 5px 5px 0 0;
+  transform-origin: bottom;
+}
+.half.lo,
+.flap.lo {
+  bottom: 0;
+  border-radius: 0 0 5px 5px;
+  transform-origin: top;
+}
+.half b,
+.flap b {
+  display: block;
+  height: 24px;
+  font-weight: inherit;
+}
+.half.lo b,
+.flap.lo b {
+  margin-top: -12px;
+}
+.flap {
+  z-index: 1;
+  backface-visibility: hidden;
+}
+/* 牌中间的分割缝 */
+.fc::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 11.5px;
+  z-index: 2;
+  height: 1px;
+  background: var(--w-bg);
+}
+/* 今天的进度：底部一根细线 */
+.d-bar {
+  position: absolute;
+  left: 7px;
+  right: 7px;
+  bottom: 2px;
+  height: 1.5px;
+  border-radius: 1px;
+  background: var(--w-track);
+  overflow: hidden;
+  transition:
+    opacity 0.35s ease,
+    left 0.34s cubic-bezier(0.32, 1.28, 0.5, 1);
+}
+/* 按钮展开时翻页整体变宽 27px，细线左端同步让出，长度不变 */
+.float:is(.open, .pin) .d-bar,
+.w-d:has(:focus-visible) .d-bar {
+  left: 34px;
+}
+.d-day {
+  position: absolute;
+  inset: 0;
+  background: var(--plan);
+  transform: translateX(-100%);
+  transition: transform 0.8s var(--ease-out);
+}
+/* 翻页的细线单独开关（翻页默认不显示），和其他形态的「显示今天的进度」分开 */
+.float:not(.d-day-on) .d-bar {
+  opacity: 0;
+}
+.float.extra .d-day {
+  background: var(--over);
+}
+
+/* 极简：平时一个圆点；鼠标停一下（悬停意图见脚本里的 .open）圆点长成按钮；也可以设成按钮一直显示（.pin）。
+   只有键盘焦点（:focus-visible）才让它保持展开，鼠标点完不会卡在展开的样子 */
+.w-b {
+  gap: 7px;
+  height: 30px;
+  padding: 0 12px 0 11px;
+  border-radius: 15px;
+  font-size: 14px;
+}
+.float:is(.open, .pin) .w-b,
+.w-b:has(:focus-visible) {
+  padding-left: 4px;
+}
+.btn-b {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--plan);
+  color: #ffffff;
+  display: grid;
+  place-items: center;
+  transition:
+    width 0.34s cubic-bezier(0.32, 1.28, 0.5, 1),
+    height 0.34s cubic-bezier(0.32, 1.28, 0.5, 1),
+    background-color 0.3s ease,
+    box-shadow 0.3s ease,
+    scale 0.36s var(--ease-spring);
+}
+/* 按下缩一下，松手带一点回弹 */
+.btn-b:active {
+  scale: 0.8;
+  transition-duration: 0.34s, 0.34s, 0.3s, 0.3s, 0.1s;
+}
+.float:is(.open, .pin) .btn-b,
+.w-b:has(:focus-visible) .btn-b {
+  width: 22px;
+  height: 22px;
+}
+.float.running[data-flow='none']:not(.open):not(.pin) .w-b:not(:has(:focus-visible)) .btn-b {
+  animation: breathe 1.8s ease-in-out infinite;
+}
+/* 暂停：圆点保持实心，变成中性灰，和变灰的数字一致（空心圆不好看） */
+.float:not(.running):not(.open):not(.pin) .w-b:not(:has(:focus-visible)) .btn-b {
+  background: var(--w-fg2);
+}
+.btn-b .pp {
+  width: 12px;
+  height: 12px;
+  opacity: 0;
+  transform: scale(0.4);
+  transition:
+    opacity 0.2s ease,
+    transform 0.34s var(--ease-spring);
+}
+.float:is(.open, .pin) .btn-b .pp,
+.w-b:has(:focus-visible) .btn-b .pp {
+  opacity: 1;
+  transform: none;
+}
+@keyframes breathe {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+/* C 小圆表：外圈进度，小点每分钟绕一圈，中间时间；移上去中间换成按钮 */
+.w-c {
+  position: relative;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  font-size: 13px;
+  place-items: center;
+}
+.c-ring circle.track,
+.c-ring circle.arc {
+  stroke-width: 2.5;
+}
+.orbit {
+  transform-origin: 28px 28px;
+  transition: transform 1s linear;
+}
+.orbit.jump {
+  transition: none;
+}
+.sec {
+  fill: var(--w-fg);
+  stroke: var(--w-bg);
+  stroke-width: 1.2;
+  transition: fill 0.35s ease;
+}
+.float:not(.running) .sec {
+  fill: var(--w-fg2);
+}
+.c-time {
+  position: relative;
+  transition:
+    opacity 0.2s ease,
+    transform 0.3s var(--ease-out),
+    color 0.35s ease;
+}
+.btn-c {
+  position: absolute;
+  inset: 8px;
+  border-radius: 50%;
+  background: var(--w-btn);
+  color: var(--w-fg);
+  display: grid;
+  place-items: center;
+  opacity: 0;
+  transform: scale(0.8);
+  transition:
+    opacity 0.2s ease,
+    transform 0.32s var(--ease-spring),
+    background-color 0.16s ease,
+    color 0.3s ease;
+}
+.float.open .btn-c,
+.btn-c:focus-visible {
+  opacity: 1;
+  transform: none;
+}
+.btn-c:active {
+  transform: scale(0.88);
+}
+/* 小秒：像机械表 6 点钟方向的小秒盘，在「时:分」正下方小一号、用次要色，每秒滚一格；
+   不到 1 小时也是这个排法（0:24 / 07），过整点时布局不跳 */
+.c-face {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  transition:
+    opacity 0.2s ease,
+    transform 0.3s var(--ease-out);
+}
+.c-sec {
+  margin-top: -2px;
+  font-size: 9px;
+  letter-spacing: 0.02em;
+  color: var(--w-fg2);
+}
+.float.open .c-face,
+.w-c:has(:focus-visible) .c-face {
+  opacity: 0;
+  transform: scale(0.8);
+}
+.float:not(.running) .btn-c {
+  color: var(--plan);
+}
+.btn-c .pp {
+  width: 18px;
+  height: 18px;
+}
+
+/* ---------- 时间流逝感 ---------- */
+/* 像钟表一样分两层：短尺度一直在动（刻度带 / 分钟线 / 秒脉搏），长尺度（今天的进度）安静地涨 */
+.float[data-skin='light'] {
+  --tick: rgba(0, 0, 0, 0.22);
+  --tick2: rgba(0, 0, 0, 0.42);
+  /* 浅色底上液体要深一点才看得清（深色模式是深底上的暗蓝，0.2 就够） */
+  --tide-a: 0.22;
+}
+.float[data-skin='dark'],
+.float[data-skin='island'] {
+  --tick: rgba(255, 255, 255, 0.24);
+  --tick2: rgba(255, 255, 255, 0.48);
+  --tide-a: 0.2;
+}
+.w-b {
+  position: relative;
+}
+.w-b > :not(.flow) {
+  position: relative;
+}
+/* 刻度、分钟线从数字下方开始（圆点和按钮的位置让出来），展开时也不会压到按钮 */
+.w-b {
+  --fl: 26px;
+  --fr: 10px;
+}
+.float:is([data-flow='ruler'], [data-flow='minuteLine']) .w-b {
+  height: 32px;
+  border-radius: 16px;
+}
+.float:is([data-flow='ruler'], [data-flow='minuteLine']) .w-b .w-time {
+  transform: translateY(-2px);
+}
+.flow {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  overflow: hidden;
+  pointer-events: none;
+  transition: left 0.34s cubic-bezier(0.32, 1.28, 0.5, 1);
+}
+/* 展开时整个悬浮窗照旧微微变大（左边多出 7px 给按钮）；底色层左边同步让出 7px，
+   和展开用同一条曲线，所以底色、刻度相对数字一动不动，不会跟着伸缩 */
+.float:is(.open, .pin) .w-b .flow,
+.w-b:has(:focus-visible) .flow {
+  left: 7px;
+}
+/* 今天的进度：极简用底色，翻页用底部细线，小圆表用进度环 */
+/* 今天的进度是一条时间线，「现在」永远从左往右走：正计时底色在「现在」左边（走过的），
+   倒计时（.drain）在右边（还剩的）。超过目标变橙。
+   底色两头各多出 4px，轻轻晃动时边上不会露缝 */
+.float {
+  --liq: var(--plan);
+}
+.float.extra {
+  --liq: var(--over);
+}
+.tide {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -4px;
+  right: -4px;
+  overflow: hidden;
+  background: var(--liq);
+  opacity: var(--tide-a);
+  transform: translateX(-100%);
+  /* 靠「现在」的边缘柔和地化开，不是一刀切的直边 */
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 10px), transparent);
+  mask-image: linear-gradient(to right, #000 calc(100% - 10px), transparent);
+  transition:
+    transform 0.8s var(--ease-out),
+    opacity 0.35s ease,
+    background-color 0.35s ease;
+}
+.float.drain .tide {
+  -webkit-mask-image: linear-gradient(to left, #000 calc(100% - 10px), transparent);
+  mask-image: linear-gradient(to left, #000 calc(100% - 10px), transparent);
+}
+/* 流体感：液体轻轻左右晃，里面一道很淡的光朝「现在」流过去；暂停时光熄掉、晃动慢慢停下 */
+.sheen {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -40%;
+  width: 40%;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.6), transparent);
+  transition: opacity 0.6s ease;
+}
+.float:not(.running) .sheen {
+  opacity: 0;
+}
+.float.flowing .tide {
+  animation: sway 2.8s ease-in-out infinite alternate;
+}
+.float.flowing .sheen {
+  animation: sheen 5s linear infinite;
+}
+.float.flowing.drain .sheen {
+  animation-direction: reverse;
+}
+@keyframes sway {
+  from {
+    translate: -1.5px 0;
+  }
+  to {
+    translate: 1.5px 0;
+  }
+}
+@keyframes sheen {
+  to {
+    transform: translateX(350%);
+  }
+}
+.float.no-day :is(.tide, .arc) {
+  opacity: 0 !important;
+}
+.ruler-win,
+.mtrack {
+  position: absolute;
+  left: var(--fl);
+  right: var(--fr);
+  display: none;
+  transition: opacity 0.35s ease;
+}
+.float[data-flow='ruler'] .ruler-win,
+.float[data-flow='minuteLine'] .mtrack {
+  display: block;
+}
+/* 刻度带：像 AE 的时间线，刻度每秒往左流 4px，右边是固定的播放头，整分钟的长刻度正好在那一刻走过它 */
+.ruler-win {
+  bottom: 3px;
+  height: 8px;
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 45%);
+  mask-image: linear-gradient(to right, transparent, #000 45%);
+}
+.ruler {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: -240px;
+  will-change: transform;
+  background:
+    linear-gradient(to right, var(--plan) 1px, transparent 1px) right 1px bottom 0 / 240px 8px
+      repeat-x,
+    linear-gradient(to right, var(--tick2) 1px, transparent 1px) right 1px bottom 0 / 40px 6px
+      repeat-x,
+    linear-gradient(to right, var(--tick) 1px, transparent 1px) right 1px bottom 0 / 4px 3px
+      repeat-x;
+}
+.head {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 1.5px;
+  height: 8px;
+  border-radius: 1px;
+  background: var(--w-fg);
+}
+/* 分钟线：底部细线一分钟画满一次，满了淡出再从头开始 */
+.mtrack {
+  bottom: 4px;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--w-track);
+  overflow: hidden;
+}
+.mline {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--plan);
+  transform-origin: left;
+  transform: scaleX(0);
+}
+/* 小圆表：刻度盘每分钟转一圈（像 Session 的转盘），或内圈每分钟画满一圈 */
+.dial,
+.marker,
+.marc {
+  display: none;
+}
+.float[data-flow='ruler'] :is(.dial, .marker),
+.float[data-flow='minuteLine'] .marc {
+  display: inline;
+}
+.float:is([data-flow='ruler'], [data-flow='minuteLine']) .orbit {
+  display: none;
+}
+.dial {
+  transform-origin: 28px 28px;
+}
+.dial line {
+  stroke: var(--tick);
+  stroke-width: 1;
+  stroke-linecap: round;
+}
+.dial line.l {
+  stroke: var(--tick2);
+}
+.dial line.m {
+  stroke: var(--plan);
+  stroke-width: 1.6;
+}
+.marker {
+  stroke: var(--w-fg);
+  stroke-width: 1.4;
+  stroke-linecap: round;
+}
+.c-ring circle.marc {
+  stroke: var(--plan);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-dasharray: 100 100;
+  stroke-dashoffset: 100;
+}
+.sec {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.float.flowing[data-flow='ruler'] .ruler {
+  animation: ruler 60s linear var(--phase, 0s) infinite;
+}
+.float.flowing[data-flow='ruler'] .dial {
+  animation: dial 60s linear var(--phase, 0s) infinite;
+}
+.float.flowing[data-flow='minuteLine'] .mline {
+  animation: mline 60s linear var(--phase, 0s) infinite;
+}
+.float.flowing[data-flow='minuteLine'] .marc {
+  animation: marc 60s linear var(--phase, 0s) infinite;
+}
+/* 暂停：短尺度慢慢停住（脚本里调播放速度）并变淡，一眼看出没在计时 */
+
+/* 正计时：刻度往左流；倒计时：刻度往右流。播放头不动、留在右边，不会碰到圆点。
+   分钟线、小圆表的刻度盘和秒点也反着走；今天的进度看底色在「现在」的哪一侧 */
+.float.flowing.down :is(.ruler, .mline, .marc, .dial) {
+  animation-direction: reverse;
+}
+.float:not(.running) :is(.ruler-win, .mtrack, .dial, .marker, .marc) {
+  opacity: 0.45;
+}
+@keyframes ruler {
+  to {
+    transform: translateX(-240px);
+  }
+}
+@keyframes dial {
+  to {
+    transform: rotate(-360deg);
+  }
+}
+@keyframes mline {
+  0% {
+    transform: scaleX(0);
+    opacity: 1;
+  }
+  95% {
+    opacity: 1;
+  }
+  100% {
+    transform: scaleX(1);
+    opacity: 0;
+  }
+}
+@keyframes marc {
+  0% {
+    stroke-dashoffset: 100;
+    opacity: 1;
+  }
+  95% {
+    opacity: 1;
+  }
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 0;
+  }
+}
+
+[hidden] {
+  display: none !important;
+}
+.float.locked {
+  cursor: default;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .float,
+  .float * {
+    transition: none !important;
+    animation: none !important;
+  }
+}

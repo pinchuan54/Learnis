@@ -6,6 +6,7 @@ import {
   useQueryClient,
 } from '@tanstack/react-query';
 import { type ApiError, api } from './client';
+import { broadcastDataChanged } from './dataChanged';
 import type {
   AdjustRequest,
   PlanInput,
@@ -83,7 +84,7 @@ export const usePending = () => useQuery({ queryKey: queryKeys.pending, queryFn:
 
 /**
  * 修改后整体刷新：数据都在本机，量很小，
- * 全部失效比逐个推算受影响的查询更简单可靠。
+ * 全部失效比逐个推算受影响的查询更简单可靠。同时通知其他窗口（悬浮窗 / 主窗口）刷新。
  */
 function useDataMutation<TData, TVariables>(
   mutationFn: (variables: TVariables) => Promise<TData>,
@@ -94,6 +95,7 @@ function useDataMutation<TData, TVariables>(
     ...options,
     mutationFn,
     onSettled: async (...args) => {
+      broadcastDataChanged();
       await queryClient.invalidateQueries();
       await options?.onSettled?.(...args);
     },
