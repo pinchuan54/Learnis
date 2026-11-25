@@ -127,7 +127,8 @@ pub struct TimerStatus {
     pub today: String,
     /// 正在进行的计时
     pub running: Option<Session>,
-    /// 正在计时的计划今天的目标与已学（不在计时则为空）
+    /// 正在计时的计划今天的目标与已学；不在计时时是最近使用的计划（没有计划则为空）
+    /// 用到它的地方要先看 `running`：顶栏胶囊、托盘提示只在计时中显示
     pub plan_today: Option<PlanDayProgress>,
 }
 

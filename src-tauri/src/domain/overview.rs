@@ -184,21 +184,25 @@ pub fn day(conn: &Connection, ctx: &Ctx, date: &str) -> AppResult<DayDetail> {
 
 pub fn timer_status(conn: &Connection, ctx: &Ctx) -> AppResult<TimerStatus> {
     let running = sessions::running(conn)?;
-    let plan_today = match &running {
-        Some(session) => {
-            let ledger: HashMap<_, _> =
-                load_ledger(conn, ctx.today, ctx.today, Some(session.plan_id))?;
+    // 计时中是正在计时的计划；不在计时时是最近使用的计划（悬浮窗暂停时显示它，点开始也开始它）
+    let plan_id = match &running {
+        Some(session) => Some(session.plan_id),
+        None => plans::last_used(conn)?.map(|plan| plan.id),
+    };
+    let plan_today = match plan_id {
+        Some(plan_id) => {
+            let ledger: HashMap<_, _> = load_ledger(conn, ctx.today, ctx.today, Some(plan_id))?;
             let target = ledger
-                .get(&(session.plan_id, ctx.today))
+                .get(&(plan_id, ctx.today))
                 .copied()
                 .unwrap_or_default()
                 .target();
             let studied_seconds = sessions::studied_by_plan_day(conn, ctx, ctx.today, ctx.today)?
-                .get(&(session.plan_id, ctx.today))
+                .get(&(plan_id, ctx.today))
                 .copied()
                 .unwrap_or(0);
             Some(PlanDayProgress {
-                plan_id: session.plan_id,
+                plan_id,
                 target_minutes: target,
                 studied_seconds,
             })
@@ -445,5 +449,32 @@ mod tests {
             (60, 3600)
         );
         assert!(status.running.is_some());
+    }
+
+    #[test]
+    fn timer_status_reports_last_used_plan_when_paused() {
+        let mut conn = conn();
+        let status = timer_status(&conn, &ctx_at("2026-11-02", 10)).unwrap();
+        assert!(status.plan_today.is_none());
+
+        let plan = create(
+            &mut conn,
+            &ctx_at("2026-11-01", 0),
+            &sample_input(600, "2026-11-01", "2026-11-10"),
+        )
+        .unwrap();
+        sessions::start(&conn, &ctx_at("2026-11-02", 9), plan.id).unwrap();
+        sessions::stop(&conn, &ctx_at("2026-11-02", 10)).unwrap();
+        let status = timer_status(&conn, &ctx_at("2026-11-02", 11)).unwrap();
+        assert!(status.running.is_none());
+        let progress = status.plan_today.unwrap();
+        assert_eq!(
+            (
+                progress.plan_id,
+                progress.target_minutes,
+                progress.studied_seconds
+            ),
+            (plan.id, 60, 3600)
+        );
     }
 }
