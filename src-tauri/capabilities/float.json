@@ -1,0 +1,12 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "float",
+  "description": "悬浮窗的权限：显示自己、按内容调整大小和位置、弹出右键菜单",
+  "windows": ["float"],
+  "permissions": [
+    "core:default",
+    "core:window:allow-show",
+    "core:window:allow-set-size",
+    "core:window:allow-set-position"
+  ]
+}

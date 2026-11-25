@@ -30,34 +30,42 @@ pub async fn get_settings(db: State<'_, Db>) -> AppResult<Settings> {
     db.with(|conn| settings::get(conn))
 }
 
-/// 更新设置。修改快捷键时先尝试注册，注册失败（格式错误或被占用）则不保存并恢复原快捷键。
+/// 更新设置。修改快捷键（开始 / 暂停、悬浮窗）时先尝试注册，
+/// 注册失败（格式错误、两个相同或被占用）则不保存并恢复原来的快捷键。
 #[tauri::command]
 pub async fn update_settings<R: Runtime>(
     app: AppHandle<R>,
     db: State<'_, Db>,
     patch: Value,
 ) -> AppResult<Settings> {
-    let new_hotkey = patch
-        .get("toggleHotkey")
-        .and_then(Value::as_str)
-        .map(str::to_owned);
-    let previous = db.with(|conn| settings::get(conn))?.toggle_hotkey;
-    let hotkey_changed = new_hotkey
-        .as_ref()
-        .is_some_and(|hotkey| *hotkey != previous);
+    let previous = db.with(|conn| settings::get(conn))?;
+    let pick = |key: &str, old: &str| {
+        patch
+            .get(key)
+            .and_then(Value::as_str)
+            .unwrap_or(old)
+            .to_owned()
+    };
+    let hotkeys = (
+        pick("toggleHotkey", &previous.toggle_hotkey),
+        pick("floatHotkey", &previous.float_hotkey),
+    );
+    let hotkey_changed = hotkeys.0 != previous.toggle_hotkey || hotkeys.1 != previous.float_hotkey;
 
     #[cfg(desktop)]
-    if let (true, Some(hotkey)) = (hotkey_changed, &new_hotkey)
-        && let Err(err) = desktop::hotkey::register(&app, hotkey)
-    {
-        let _ = desktop::hotkey::register(&app, &previous);
+    let restore = || {
+        let _ = desktop::hotkey::register(&app, &previous.toggle_hotkey, &previous.float_hotkey);
+    };
+    #[cfg(desktop)]
+    if hotkey_changed && let Err(err) = desktop::hotkey::register(&app, &hotkeys.0, &hotkeys.1) {
+        restore();
         return Err(err);
     }
 
     let saved = db.with(|conn| settings::update(conn, &patch));
     #[cfg(desktop)]
     if saved.is_err() && hotkey_changed {
-        let _ = desktop::hotkey::register(&app, &previous);
+        restore();
     }
     #[cfg(not(desktop))]
     let _ = (&app, hotkey_changed);
@@ -289,6 +297,29 @@ pub async fn get_autostart<R: Runtime>(app: AppHandle<R>) -> AppResult<bool> {
 #[tauri::command]
 pub async fn set_autostart<R: Runtime>(app: AppHandle<R>, enabled: bool) -> AppResult<bool> {
     desktop::startup::set_autostart(&app, enabled)
+}
+
+// ---------- 悬浮窗 ----------
+
+/// 进入悬浮窗：收起主窗口、打开悬浮窗
+#[cfg(desktop)]
+#[tauri::command]
+pub async fn enter_float<R: Runtime>(app: AppHandle<R>) {
+    desktop::float::enter(&app);
+}
+
+/// 关掉悬浮窗（悬浮窗右键「隐藏悬浮窗」）
+#[cfg(desktop)]
+#[tauri::command]
+pub async fn close_float<R: Runtime>(app: AppHandle<R>) {
+    desktop::float::close(&app);
+}
+
+/// 回到主窗口（双击悬浮窗、右键「打开 Learnis」），悬浮窗随之关掉
+#[cfg(desktop)]
+#[tauri::command]
+pub async fn open_main_window<R: Runtime>(app: AppHandle<R>) {
+    desktop::show_main_window(&app);
 }
 
 // ---------- 关于与更新 ----------

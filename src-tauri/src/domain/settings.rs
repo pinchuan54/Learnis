@@ -44,6 +44,44 @@ pub enum TimerDisplay {
     CountUp,
 }
 
+/// 悬浮窗形态
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
+#[serde(rename_all = "camelCase")]
+pub enum FloatForm {
+    /// 圆点 + 时间，底色是今天的进度
+    #[default]
+    Minimal,
+    /// 时、分、秒三张翻页小牌
+    Flip,
+    /// 小圆表：外圈进度环，中间时:分和小秒
+    Dial,
+}
+
+/// 悬浮窗的「时间流逝感」：一直在动、表示时间在走的短尺度元素
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
+#[serde(rename_all = "camelCase")]
+pub enum FloatFlow {
+    /// 刻度带（小圆表上是刻度盘）
+    #[default]
+    Ruler,
+    /// 分钟线：一分钟画满一次
+    MinuteLine,
+    /// 秒脉搏：每秒轻轻跳一下
+    Pulse,
+    None,
+}
+
+/// 悬浮窗配色
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
+#[serde(rename_all = "camelCase")]
+pub enum FloatSkin {
+    /// 跟随 Learnis 的浅色 / 深色
+    #[default]
+    Follow,
+    /// 固定的纯黑胶囊
+    Island,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase", default)]
 pub struct Settings {
@@ -67,6 +105,27 @@ pub struct Settings {
     pub show_calendar_legend: bool,
     /// 顶部导航左上角显示应用名称（关闭后只显示标志）
     pub show_app_name: bool,
+    /// 计时中把主窗口关到托盘或最小化时，自动出现悬浮窗
+    pub float_auto: bool,
+    /// 显示 / 隐藏悬浮窗的全局快捷键
+    pub float_hotkey: String,
+    pub float_form: FloatForm,
+    pub float_flow: FloatFlow,
+    /// 极简、小圆表显示今天的进度（底色 / 进度环）
+    pub float_progress: bool,
+    /// 翻页底部的进度细线（单独设置，默认不显示）
+    pub float_flip_progress: bool,
+    pub float_skin: FloatSkin,
+    /// 悬浮窗大小，百分比
+    pub float_scale: i64,
+    /// 开始 / 暂停按钮一直显示（极简、翻页）
+    pub float_pin_button: bool,
+    /// 悬停时显示右下角的拖角，拖它缩放
+    pub float_grip: bool,
+    /// 鼠标离开一会儿后变成半透明
+    pub float_dim: bool,
+    /// 锁定位置，拖不动
+    pub float_locked: bool,
 }
 
 impl Default for Settings {
@@ -83,9 +142,24 @@ impl Default for Settings {
             long_session_minutes: 180,
             show_calendar_legend: true,
             show_app_name: true,
+            float_auto: true,
+            float_hotkey: "Ctrl+Shift+F11".into(),
+            float_form: FloatForm::default(),
+            float_flow: FloatFlow::default(),
+            float_progress: true,
+            float_flip_progress: false,
+            float_skin: FloatSkin::default(),
+            float_scale: 100,
+            float_pin_button: false,
+            float_grip: false,
+            float_dim: false,
+            float_locked: false,
         }
     }
 }
+
+/// 悬浮窗大小的范围（百分比）
+pub const FLOAT_SCALE_RANGE: std::ops::RangeInclusive<i64> = 80..=200;
 
 impl Settings {
     fn validate(&self) -> AppResult<()> {
@@ -93,9 +167,14 @@ impl Settings {
         if !(0..=24 * 60).contains(&self.long_session_minutes) {
             return Err(AppError::invalid("长时间计时提醒需在 0 ~ 1440 分钟之间"));
         }
-        let hotkey = self.toggle_hotkey.trim();
-        if hotkey.is_empty() || hotkey.chars().count() > 50 {
-            return Err(AppError::invalid("快捷键格式不正确"));
+        for hotkey in [&self.toggle_hotkey, &self.float_hotkey] {
+            let hotkey = hotkey.trim();
+            if hotkey.is_empty() || hotkey.chars().count() > 50 {
+                return Err(AppError::invalid("快捷键格式不正确"));
+            }
+        }
+        if !FLOAT_SCALE_RANGE.contains(&self.float_scale) {
+            return Err(AppError::invalid("悬浮窗大小需在 80% ~ 200% 之间"));
         }
         Ok(())
     }
@@ -238,6 +317,47 @@ mod tests {
         assert!(update(&conn, &json!({ "unknownKey": 1 })).is_err());
         assert!(update(&conn, &json!({ "longSessionMinutes": -5 })).is_err());
         assert!(update(&conn, &json!("not an object")).is_err());
+        assert!(update(&conn, &json!({ "floatScale": 79 })).is_err());
+        assert!(update(&conn, &json!({ "floatScale": 201 })).is_err());
+        assert!(update(&conn, &json!({ "floatForm": "capsule" })).is_err());
+        assert!(update(&conn, &json!({ "floatHotkey": " " })).is_err());
         assert_eq!(get(&conn).unwrap(), Settings::default());
+    }
+
+    #[test]
+    fn float_settings_default_and_update() {
+        let conn = conn();
+        // 旧版本保存的设置里没有悬浮窗字段，读出来是默认值
+        conn.execute(
+            "INSERT INTO settings (key, value) VALUES (?1, ?2)",
+            params![SETTINGS_KEY, r#"{"timezone":"Asia/Shanghai"}"#],
+        )
+        .unwrap();
+        let settings = get(&conn).unwrap();
+        assert!(settings.float_auto);
+        assert_eq!(settings.float_hotkey, "Ctrl+Shift+F11");
+        assert_eq!(settings.float_form, FloatForm::Minimal);
+        assert_eq!(settings.float_flow, FloatFlow::Ruler);
+        assert!(settings.float_progress);
+        assert!(!settings.float_flip_progress);
+        assert_eq!(settings.float_scale, 100);
+
+        let updated = update(
+            &conn,
+            &json!({
+                "floatForm": "dial",
+                "floatFlow": "minuteLine",
+                "floatSkin": "island",
+                "floatScale": 150,
+                "floatLocked": true
+            }),
+        )
+        .unwrap();
+        assert_eq!(updated.float_form, FloatForm::Dial);
+        assert_eq!(updated.float_flow, FloatFlow::MinuteLine);
+        assert_eq!(updated.float_skin, FloatSkin::Island);
+        assert_eq!(updated.float_scale, 150);
+        assert!(updated.float_locked);
+        assert_eq!(updated.timezone, "Asia/Shanghai");
     }
 }
