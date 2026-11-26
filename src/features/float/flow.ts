@@ -1,10 +1,10 @@
 /**
- * 「时间在走」的 CSS 动画：刻度带、分钟线、刻度盘、液体晃动和里面的光（都只动位移和旋转）。
+ * 「时间在走」的 CSS 动画：刻度带、分钟线、刻度盘（都只动位移和旋转）。
  * - restartFlow：按当前秒数设好起点（--phase）再重新开始，整分钟的长刻度正好在那一刻走过播放头；
  * - rampFlow：暂停像唱片机断电，0.45 秒内慢慢停住；开始时同样慢慢动起来（只改播放速度，位置不跳）。
  */
 
-const FLOW_ANIMATIONS = new Set(['ruler', 'dial', 'mline', 'marc', 'sway', 'sheen']);
+const FLOW_ANIMATIONS = new Set(['ruler', 'dial', 'mline', 'marc']);
 let rampId = 0;
 
 function flowAnimations(root: HTMLElement) {

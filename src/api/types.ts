@@ -235,7 +235,7 @@ export interface Settings {
   floatScale: number;
   /** 开始 / 暂停按钮一直显示（极简、翻页） */
   floatPinButton: boolean;
-  /** 悬停时显示右下角的拖角 */
+  /** 悬停时显示拖角（在贴边方向的对角） */
   floatGrip: boolean;
   /** 鼠标离开一会儿后变成半透明 */
   floatDim: boolean;
@@ -249,8 +249,8 @@ export type FloatForm = 'minimal' | 'flip' | 'dial';
 /** 悬浮窗的时间流逝感：刻度带 / 分钟线 / 秒脉搏 / 不显示 */
 export type FloatFlow = 'ruler' | 'minuteLine' | 'pulse' | 'none';
 
-/** 悬浮窗配色：跟随浅色 / 深色，或固定的纯黑 */
-export type FloatSkin = 'follow' | 'island';
+/** 悬浮窗配色：白 / 黑 / 跟随系统（和 Learnis 的外观分开设置） */
+export type FloatSkin = 'light' | 'dark' | 'system';
 
 /** 等待用户处理的倒计时归零提醒 */
 export interface CountdownReminder {

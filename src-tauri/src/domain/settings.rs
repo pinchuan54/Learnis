@@ -71,15 +71,19 @@ pub enum FloatFlow {
     None,
 }
 
-/// 悬浮窗配色
+/// 悬浮窗配色：单独设置，和 Learnis 主程序的外观无关
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
 #[serde(rename_all = "camelCase")]
 pub enum FloatSkin {
-    /// 跟随 Learnis 的浅色 / 深色
+    /// 白
+    Light,
+    /// 黑（v0.2.6 的「灵动岛黑」读成这个）
+    #[serde(alias = "island")]
+    Dark,
+    /// 跟随系统的浅色 / 深色（v0.2.6 的「跟随外观」读成这个）
     #[default]
-    Follow,
-    /// 固定的纯黑胶囊
-    Island,
+    #[serde(alias = "follow")]
+    System,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -120,7 +124,7 @@ pub struct Settings {
     pub float_scale: i64,
     /// 开始 / 暂停按钮一直显示（极简、翻页）
     pub float_pin_button: bool,
-    /// 悬停时显示右下角的拖角，拖它缩放
+    /// 悬停时显示拖角（在贴边方向的对角），拖它缩放
     pub float_grip: bool,
     /// 鼠标离开一会儿后变成半透明
     pub float_dim: bool,
@@ -347,7 +351,7 @@ mod tests {
             &json!({
                 "floatForm": "dial",
                 "floatFlow": "minuteLine",
-                "floatSkin": "island",
+                "floatSkin": "light",
                 "floatScale": 150,
                 "floatLocked": true
             }),
@@ -355,9 +359,28 @@ mod tests {
         .unwrap();
         assert_eq!(updated.float_form, FloatForm::Dial);
         assert_eq!(updated.float_flow, FloatFlow::MinuteLine);
-        assert_eq!(updated.float_skin, FloatSkin::Island);
+        assert_eq!(updated.float_skin, FloatSkin::Light);
         assert_eq!(updated.float_scale, 150);
         assert!(updated.float_locked);
         assert_eq!(updated.timezone, "Asia/Shanghai");
+    }
+
+    #[test]
+    fn float_skin_reads_values_saved_by_v0_2_6() {
+        let conn = conn();
+        for (saved, skin) in [("island", FloatSkin::Dark), ("follow", FloatSkin::System)] {
+            let json = format!(r#"{{"timezone":"Asia/Shanghai","floatSkin":"{saved}"}}"#);
+            conn.execute(
+                "INSERT INTO settings (key, value) VALUES (?1, ?2)
+                 ON CONFLICT (key) DO UPDATE SET value = excluded.value",
+                params![SETTINGS_KEY, json],
+            )
+            .unwrap();
+            let settings = get(&conn).unwrap();
+            assert_eq!(settings.float_skin, skin);
+            // 其他设置照常读出，不会因为旧值退回默认
+            assert_eq!(settings.timezone, "Asia/Shanghai");
+        }
+        assert_eq!(Settings::default().float_skin, FloatSkin::System);
     }
 }

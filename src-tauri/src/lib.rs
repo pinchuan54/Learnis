@@ -35,8 +35,7 @@ pub fn run() {
         // 检查更新、开机自启都只由后端命令调用，前端不直接使用插件，所以不需要额外权限
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(desktop::startup::plugin())
-        // 主窗口：设置为「关闭到托盘」时关闭只是隐藏；关到托盘或最小化时按设置打开悬浮窗，
-        // 回到前台时关掉悬浮窗（两者同时只出现一个）
+        // 主窗口：设置为「关闭到托盘」时关闭只是隐藏；关到托盘或最小化时按设置打开悬浮窗
         .on_window_event(|window, event| {
             if window.label() != "main" {
                 return;
@@ -51,7 +50,6 @@ pub fn run() {
                 tauri::WindowEvent::Resized(_) if window.is_minimized().unwrap_or(false) => {
                     desktop::float::main_window_left(app);
                 }
-                tauri::WindowEvent::Focused(true) => desktop::float::close(app),
                 _ => {}
             }
         });

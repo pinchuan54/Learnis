@@ -271,8 +271,9 @@ const FLOAT_FLOWS: { value: FloatFlow; label: string }[] = [
 ];
 
 const FLOAT_SKINS: { value: FloatSkin; label: string }[] = [
-  { value: 'follow', label: '跟随外观' },
-  { value: 'island', label: '灵动岛黑' },
+  { value: 'light', label: '白' },
+  { value: 'dark', label: '黑' },
+  { value: 'system', label: '跟随系统' },
 ];
 
 function FloatSettings({ settings, save }: PageProps) {
@@ -364,7 +365,7 @@ function FloatSettings({ settings, save }: PageProps) {
               onChange={(floatFlipProgress) => save({ floatFlipProgress })}
             />
           </SettingRow>
-          <SettingRow title="配色">
+          <SettingRow title="配色" hint="和 Learnis 的外观分开设置">
             <SegmentedControl<FloatSkin>
               ariaLabel="配色"
               options={FLOAT_SKINS}
@@ -381,7 +382,7 @@ function FloatSettings({ settings, save }: PageProps) {
           </SettingRow>
           <SettingRow
             title="悬停时显示拖角"
-            hint="鼠标停在悬浮窗上时，右下角出现一小段弧，拖它缩放"
+            hint="鼠标停在悬浮窗上时，角上出现一小段弧，拖它缩放；贴着的边不动"
           >
             <Switch
               label="悬停时显示拖角"

@@ -78,7 +78,11 @@ export function TimerPanel({ entries }: { entries: DayPlanEntry[] }) {
     const root = document.documentElement;
     const unsubscribe = controller.subscribe((frame) => {
       const learned = Math.max(0, frame.learnedLive + frame.offset);
-      publishLiveLearned(frame.planId === null ? null : { planId: frame.planId, seconds: learned });
+      publishLiveLearned(
+        frame.planId === null
+          ? null
+          : { planId: frame.planId, seconds: learned, display: frame.display },
+      );
       const text =
         frame.targetSeconds > 0
           ? `今天目标 ${formatMinutes(frame.targetSeconds / 60)}，已学 ${formatSeconds(learned)}`

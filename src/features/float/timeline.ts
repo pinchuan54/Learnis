@@ -24,18 +24,29 @@ export function reading(studied: number, target: number, mode: FloatMode) {
   return { seconds: Math.abs(left), over: left < 0 };
 }
 
+/** 超出目标后最多加深到第几层 */
+const EXTRA_LEVELS = 3;
+
 /**
  * 今天的进度是一条时间线，「现在」在 p（0 ~ 1）处，永远从左往右走：
  * - 正计时亮 [0, p]（走过的）；倒计时（drain）亮 [p, 1]（还剩的）；
- * - 学过目标（extra）后变橙：正计时整条亮着，倒计时改成从左边累积超出的部分；
- * - 今天没有目标时：没学过就是空的，学了就算超出。
+ * - 学过目标后，超出的时间按今天的目标一轮一轮算（目标 3 小时，多学的每 3 小时是一轮）：
+ *   每一轮从左边涨满，level 是这一轮颜色的深浅（1 ~ 3 层，到顶不再加深）；
+ *   under 是垫在下面的整条：上一轮的颜色（1 ~ 2），第一轮正计时垫着学满的计划色（-1），倒计时是空的（0）；
+ * - 今天没有目标时：没学过就是空的，学了就算第一轮学满。
  */
 export function timeline(studied: number, target: number, mode: FloatMode) {
-  const extra = studied > target;
-  const ratio = (value: number) => (target > 0 ? Math.min(value / target, 1) : value > 0 ? 1 : 0);
-  if (mode === 'down' && extra) return { p: ratio(studied - target), drain: false, extra };
-  if (mode === 'down') return { p: target > 0 ? ratio(studied) : 1, drain: true, extra };
-  return { p: ratio(studied), drain: false, extra };
+  if (studied > target) {
+    const round = target > 0 ? Math.floor((studied - target) / target) : 0;
+    return {
+      p: target > 0 ? ((studied - target) % target) / target : 1,
+      drain: false,
+      level: Math.min(round + 1, EXTRA_LEVELS),
+      under: round > 0 ? Math.min(round, EXTRA_LEVELS - 1) : mode === 'up' && target > 0 ? -1 : 0,
+    };
+  }
+  const p = target > 0 ? studied / target : mode === 'down' ? 1 : 0;
+  return { p, drain: mode === 'down', level: 0, under: 0 };
 }
 
 /** 液体 / 细线的位移：整条宽度为 100%，正计时从左边伸出来，倒计时从「现在」往右铺 */
