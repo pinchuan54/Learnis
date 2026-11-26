@@ -28,6 +28,7 @@ import { showFloatMenu } from './floatMenu';
 import { GROWTH, resizeRatio } from './geometry';
 import { DialTicks, FlipCard, PlayPause, Rolling } from './parts';
 import { arcStyle, formatClock, liquidShift, pad2, reading, timeline } from './timeline';
+import { useLiveTimer } from './liveTimer';
 import { useFlowSync } from './useFlowSync';
 import { usePlacement } from './usePlacement';
 import { useSystemTheme } from './useSystemTheme';
@@ -75,16 +76,20 @@ function FloatWidget({ settings, status, plans, systemTheme }: WidgetProps) {
   // 不在计时时，planToday 是最近使用的计划：显示它，点开始也开始它
   const progress = status.planToday;
   const plan = plans.find((item) => item.id === progress?.planId);
+  // 主窗口「今天」页的计时器表比后台数据新（拖动调整中、刚开始 / 暂停还没刷新到）时跟着它走
+  const live = useLiveTimer();
+  const follow = live !== null && live.planId === progress?.planId && live.at > status.nowMs;
   const base = {
-    seconds: progress?.studiedSeconds ?? 0,
-    at: status.nowMs,
+    seconds: follow ? live.seconds : (progress?.studiedSeconds ?? 0),
+    at: follow ? live.at : status.nowMs,
     running: serverRunning,
   };
   const studied = Math.floor(
     base.seconds + (serverRunning ? Math.max(0, (now - base.at) / 1000) : 0),
   );
   const target = (progress?.targetMinutes ?? 0) * 60;
-  const mode = settings.timerDisplay === 'countUp' ? 'up' : 'down';
+  // 正 / 倒计时跟着主窗口的计时器表；主窗口不在「今天」页时用设置里的默认显示
+  const mode = (live?.display ?? settings.timerDisplay) === 'countUp' ? 'up' : 'down';
   const shown = reading(studied, target, mode);
   const line = timeline(studied, target, mode);
   // 正计时、超出部分数字变大往上滚；倒计时变小往下滚
@@ -97,7 +102,7 @@ function FloatWidget({ settings, status, plans, systemTheme }: WidgetProps) {
   const scale = preview ?? settings.floatScale;
   const growth = pinned ? 0 : GROWTH[form] * (scale / 100);
 
-  // 悬停意图：鼠标停 0.12 秒才展开，单纯掠过不触发；离开展开后的范围（含拖角）才收回
+  // 悬停意图：鼠标停 0.12 秒才展开，单纯掠过不触发；离开悬浮窗本身的形状（含拖角那一圈弧）才收回
   const [open, setOpen] = useState(false);
   const openTimer = useRef(0);
   const enter = () => {
@@ -227,7 +232,6 @@ function FloatWidget({ settings, status, plans, systemTheme }: WidgetProps) {
     'flowing',
     running && 'running',
     shown.over && 'over',
-    line.extra && 'extra',
     line.drain && 'drain',
     mode === 'down' && 'down',
     open && 'open',
@@ -258,27 +262,25 @@ function FloatWidget({ settings, status, plans, systemTheme }: WidgetProps) {
       data-skin={skin}
       data-ax={placement.ax ?? 'center'}
       data-ay={placement.ay ?? 'center'}
+      data-lv={line.level}
+      data-under={line.under}
       style={{ '--plan': planColorVar(plan?.color ?? 'blue') } as CSSProperties}
       onContextMenu={onContextMenu}
     >
       <div ref={content} className="fa">
-        <div
-          className="fz"
-          style={{ zoom: scale / 100 }}
-          onPointerEnter={enter}
-          onPointerLeave={leave}
-        >
+        <div className="fz" style={{ zoom: scale / 100 }}>
           <div
             className={`w w-${form === 'minimal' ? 'b' : form === 'flip' ? 'd' : 'c'}`}
+            onPointerEnter={enter}
+            onPointerLeave={leave}
             onPointerDown={onPointerDown}
             onDoubleClick={onDoubleClick}
           >
             {form === 'minimal' && (
               <>
                 <span className="flow" aria-hidden="true">
-                  <span className="tide" style={{ transform: shift }}>
-                    <span className="sheen" />
-                  </span>
+                  <span className="under" />
+                  <span className="tide" style={{ transform: shift }} />
                   <span className="ruler-win">
                     <span className="ruler" />
                     <span className="head" />
@@ -297,6 +299,9 @@ function FloatWidget({ settings, status, plans, systemTheme }: WidgetProps) {
                   <span className="d-day" style={{ transform: shift }} />
                 </span>
                 {toggleButton('btn-d')}
+                <span className="d-sign" aria-hidden="true">
+                  +
+                </span>
                 <FlipCard text={String(h)} reverse={mode === 'down'} hidden={h === 0} />
                 <FlipCard
                   text={pad2(Math.floor((shown.seconds % 3600) / 60))}

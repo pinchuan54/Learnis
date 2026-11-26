@@ -83,13 +83,12 @@ export function GlobalNav() {
       <div className={styles.trailing} data-tauri-drag-region>
         <TimerPill />
         {inTauri && (
-          // 悬浮窗的开关，开着时高亮；和主窗口可以同时出现
+          // 进入悬浮窗：打开悬浮窗、收起主窗口；悬浮窗开着时高亮
           <button
             type="button"
             className={`${styles.link} ${styles.floatButton} ${floatOpen ? styles.active : ''}`}
-            aria-label="悬浮窗"
-            aria-pressed={floatOpen}
-            onClick={() => void api.toggleFloat()}
+            aria-label="进入悬浮窗"
+            onClick={() => void api.enterFloat()}
             onMouseLeave={(event) => event.currentTarget.blur()}
           >
             <FloatIcon />

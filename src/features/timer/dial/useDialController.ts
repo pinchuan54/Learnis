@@ -1,6 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { api } from '../../../api/client';
+import { broadcastDataChanged } from '../../../api/dataChanged';
 import { useToast } from '../../../components/ui/toast/ToastContext';
 import { DialController, type DialServerState } from './controller';
 
@@ -14,7 +15,11 @@ export function useDialController(state: DialServerState): DialController {
       new DialController({
         stopTimer: () => api.stopTimer(),
         addCorrection: (planId, seconds, resume) => api.addCorrection(planId, seconds, resume),
-        refresh: () => queryClient.invalidateQueries(),
+        // 开始、暂停、调整之后：自己刷新，也通知悬浮窗刷新
+        refresh: () => {
+          broadcastDataChanged();
+          return queryClient.invalidateQueries();
+        },
       }),
   );
 

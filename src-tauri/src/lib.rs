@@ -108,7 +108,7 @@ pub fn run() {
             #[cfg(desktop)]
             commands::set_autostart,
             #[cfg(desktop)]
-            commands::toggle_float,
+            commands::enter_float,
             #[cfg(desktop)]
             commands::close_float,
             #[cfg(desktop)]

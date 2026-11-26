@@ -123,8 +123,8 @@ export const api = {
   reorderTodos: (date: string, ids: number[]) => call<Todo[]>('reorder_todos', { date, ids }),
 
   // 悬浮窗
-  /** 打开 / 关掉悬浮窗 */
-  toggleFloat: () => call<void>('toggle_float'),
+  /** 进入悬浮窗：打开悬浮窗、收起主窗口 */
+  enterFloat: () => call<void>('enter_float'),
   /** 关掉悬浮窗 */
   closeFloat: () => call<void>('close_float'),
   /** 回到主窗口（悬浮窗照旧开着） */

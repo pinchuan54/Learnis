@@ -58,6 +58,11 @@ export async function showFloatMenu(settings: Settings, actions: MenuActions) {
       ),
       await separator(),
       await CheckMenuItem.new({
+        text: '显示拖角',
+        checked: settings.floatGrip,
+        action: () => actions.save({ floatGrip: !settings.floatGrip }),
+      }),
+      await CheckMenuItem.new({
         text: '锁定位置',
         checked: settings.floatLocked,
         action: () => actions.save({ floatLocked: !settings.floatLocked }),

@@ -27,20 +27,31 @@ describe('reading', () => {
 
 describe('timeline', () => {
   it('正计时亮走过的，倒计时亮还剩的，「现在」在同一处', () => {
-    expect(timeline(900, 3600, 'up')).toEqual({ p: 0.25, drain: false, extra: false });
-    expect(timeline(900, 3600, 'down')).toEqual({ p: 0.25, drain: true, extra: false });
+    expect(timeline(900, 3600, 'up')).toEqual({ p: 0.25, drain: false, level: 0, under: 0 });
+    expect(timeline(900, 3600, 'down')).toEqual({ p: 0.25, drain: true, level: 0, under: 0 });
   });
 
-  it('学过目标后变橙：正计时整条亮，倒计时从左边累积超出的部分', () => {
-    expect(timeline(4500, 3600, 'up')).toEqual({ p: 1, drain: false, extra: true });
-    expect(timeline(4500, 3600, 'down')).toEqual({ p: 0.25, drain: false, extra: true });
+  it('学过目标后，超出的部分从左边涨：正计时垫着学满的计划色，倒计时下面是空的', () => {
+    expect(timeline(4500, 3600, 'up')).toEqual({ p: 0.25, drain: false, level: 1, under: -1 });
+    expect(timeline(4500, 3600, 'down')).toEqual({ p: 0.25, drain: false, level: 1, under: 0 });
   });
 
-  it('今天没有目标：没学过是空的，学了算超出', () => {
-    expect(timeline(0, 0, 'up')).toEqual({ p: 0, drain: false, extra: false });
-    expect(timeline(0, 0, 'down')).toEqual({ p: 1, drain: true, extra: false });
-    expect(timeline(60, 0, 'up')).toEqual({ p: 1, drain: false, extra: true });
-    expect(timeline(60, 0, 'down')).toEqual({ p: 1, drain: false, extra: true });
+  it('每多学一个目标的时长就加深一层，垫着上一层，到第 3 层封顶', () => {
+    expect(timeline(3600 * 2 + 900, 3600, 'down')).toEqual({
+      p: 0.25,
+      drain: false,
+      level: 2,
+      under: 1,
+    });
+    expect(timeline(3600 * 3, 3600, 'up')).toMatchObject({ p: 0, level: 3, under: 2 });
+    expect(timeline(3600 * 6 + 1800, 3600, 'up')).toMatchObject({ p: 0.5, level: 3, under: 2 });
+  });
+
+  it('今天没有目标：没学过是空的，学了算第一层学满', () => {
+    expect(timeline(0, 0, 'up')).toMatchObject({ p: 0, drain: false, level: 0 });
+    expect(timeline(0, 0, 'down')).toMatchObject({ p: 1, drain: true, level: 0 });
+    expect(timeline(60, 0, 'up')).toEqual({ p: 1, drain: false, level: 1, under: 0 });
+    expect(timeline(60, 0, 'down')).toEqual({ p: 1, drain: false, level: 1, under: 0 });
   });
 });
 

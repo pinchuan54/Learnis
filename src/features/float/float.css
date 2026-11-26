@@ -65,7 +65,6 @@ body {
    两头渐隐；鼠标停在悬浮窗上才淡淡出现，指到弧上或拖动时变清楚，拖它按比例缩放。
    放在悬浮窗里面，跟着悬停放大一起动；位置在贴边方向的对角（默认贴右上，拖角在左下），拖的时候贴着的边不动 */
 .grip {
-  --gr: 16px;
   position: absolute;
   right: -4px;
   bottom: -4px;
@@ -97,11 +96,27 @@ body {
 .float[data-ay='bottom']:not([data-ax='right']) .grip {
   cursor: nesw-resize;
 }
+/* 能按住、能算作悬停的只有看得见的那段弧：悬浮窗圆角外沿到弧外沿的 4px 宽、20° ~ 70° 的一段
+   （两头渐隐看不见的部分不算），盖在悬浮窗上的部分剪掉。--gr 是悬浮窗圆角的半径，剪的形状和它对齐 */
+.float[data-form='minimal'] .grip {
+  --gr: 15px;
+  clip-path: path('M14.1 5.13L17.85 6.5A19 19 0 0 1 6.5 17.85L5.13 14.1A15 15 0 0 0 14.1 5.13Z');
+}
+.float[data-form='minimal']:is([data-flow='ruler'], [data-flow='minuteLine']) .grip {
+  --gr: 16px;
+  clip-path: path(
+    'M15.04 5.47L18.79 6.84A20 20 0 0 1 6.84 18.79L5.47 15.04A16 16 0 0 0 15.04 5.47Z'
+  );
+}
 .float[data-form='flip'] .grip {
   --gr: 10px;
+  clip-path: path('M9.4 3.42L13.16 4.79A14 14 0 0 1 4.79 13.16L3.42 9.4A10 10 0 0 0 9.4 3.42Z');
 }
 .float[data-form='dial'] .grip {
   --gr: 28px;
+  clip-path: path(
+    'M26.31 9.58L30.07 10.94A32 32 0 0 1 10.94 30.07L9.58 26.31A28 28 0 0 0 26.31 9.58Z'
+  );
 }
 .float.has-grip .grip {
   display: block;
@@ -114,13 +129,41 @@ body {
 .float.resizing .grip {
   opacity: 0.9;
 }
-/* 两套配色：白、黑（设置里选「跟随系统」时按系统的浅色 / 深色二选一），和 Learnis 的外观无关。
-   计划颜色、超时橙用 palette.css 里的变量，页面按配色设 <html data-theme>，白取浅色那套、黑取深色那套。
-   投影比原型收一点，窗口边距放得下，不会被窗口边缘切掉 */
+/* 两套配色：白、黑（深灰，同 v0.2.6 的深色；设置里选「跟随系统」时按系统的浅色 / 深色二选一），
+   和 Learnis 的外观无关。计划颜色、超时橙用 palette.css 里的变量，页面按配色设 <html data-theme>，
+   白取浅色那套、黑取深色那套。投影比原型收一点，窗口边距放得下，不会被窗口边缘切掉 */
 .float {
   --over: var(--status-overtime);
 }
+/* 学过目标后，多出来的时间一轮一轮算（每轮是今天目标的长度），一轮比一轮深（data-lv 1 ~ 3）。
+   强调色（圆点、按钮、刻度、分钟线、进度环、超出的数字）统一换成当前这一层的颜色；
+   液体 / 细线 / 进度环下面垫着整条的上一层（data-under：-1 学满的计划色，1 ~ 2 上一层的超时色） */
+.float {
+  --x1: var(--over);
+  --x2: color-mix(in oklab, var(--over), var(--x-deep) 40%);
+  --x3: color-mix(in oklab, var(--over), var(--x-deep) 75%);
+  --accent: var(--plan);
+}
+.float[data-lv='1'] {
+  --accent: var(--x1);
+}
+.float[data-lv='2'] {
+  --accent: var(--x2);
+}
+.float[data-lv='3'] {
+  --accent: var(--x3);
+}
+.float[data-under='-1'] {
+  --under-line: var(--plan);
+}
+.float[data-under='1'] {
+  --under-line: var(--x1);
+}
+.float[data-under='2'] {
+  --under-line: var(--x2);
+}
 .float[data-skin='light'] {
+  --x-deep: #c2410c;
   --w-bg: #ffffff;
   --w-fg: #1d1d1f;
   --w-fg2: #86868b;
@@ -131,14 +174,15 @@ body {
   --w-btn-hover: rgba(0, 0, 0, 0.09);
 }
 .float[data-skin='dark'] {
-  --w-bg: #000000;
-  --w-fg: #ffffff;
+  --x-deep: #ff453a;
+  --w-bg: #1d1d1f;
+  --w-fg: #f5f5f7;
   --w-fg2: #8e8e93;
-  --w-track: rgba(255, 255, 255, 0.16);
-  --w-edge: rgba(255, 255, 255, 0.07);
-  --w-shadow: 0 5px 14px rgba(0, 0, 0, 0.35), 0 1px 3px rgba(0, 0, 0, 0.2);
-  --w-btn: rgba(255, 255, 255, 0.1);
-  --w-btn-hover: rgba(255, 255, 255, 0.17);
+  --w-track: rgba(255, 255, 255, 0.12);
+  --w-edge: rgba(255, 255, 255, 0.12);
+  --w-shadow: 0 5px 14px rgba(0, 0, 0, 0.5), 0 1px 3px rgba(0, 0, 0, 0.3);
+  --w-btn: rgba(255, 255, 255, 0.08);
+  --w-btn-hover: rgba(255, 255, 255, 0.14);
 }
 
 .w {
@@ -165,22 +209,30 @@ body {
 }
 /* 悬停展开时整体再微微放大、投影加深，像轻轻浮起来。放大的中心跟着贴边走：
    贴右以右边为中心，右边缘仍然贴住；贴左以左边；没贴边以正中（内容在窗口里居中，展开时两边各长一半）。
-   拖动时就保持悬停的样子，不再额外放大，松手不回弹 */
+   中心放在贴着的那个圆角的弧上（往里 --ri，边缘只动零点几像素）：放大后的形状一定盖住原来的，
+   鼠标停在边上不会一会儿算进一会儿算出。拖动时就保持悬停的样子，不再额外放大，松手不回弹 */
 .float {
   --ox: center;
   --oy: center;
+  --ri: 4.4px;
+}
+.float[data-form='flip'] {
+  --ri: 2.9px;
+}
+.float[data-form='dial'] {
+  --ri: 8.2px;
 }
 .float[data-ax='left'] {
-  --ox: left;
+  --ox: var(--ri);
 }
 .float[data-ax='right'] {
-  --ox: right;
+  --ox: calc(100% - var(--ri));
 }
 .float[data-ay='top'] {
-  --oy: top;
+  --oy: var(--ri);
 }
 .float[data-ay='bottom'] {
-  --oy: bottom;
+  --oy: calc(100% - var(--ri));
 }
 .float.open .w {
   scale: 1.04;
@@ -208,7 +260,7 @@ body {
   cursor: default;
 }
 .tg:focus-visible {
-  outline: 2px solid var(--plan);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
   box-shadow: none;
 }
@@ -223,7 +275,7 @@ body {
   transition-delay: 0.12s;
 }
 .float.over .w-time {
-  color: var(--over);
+  color: var(--accent);
 }
 .s {
   display: inline-block;
@@ -284,16 +336,19 @@ body {
   height: 100%;
   transform: rotate(-90deg);
   overflow: visible;
+  /* 只是画上去的：整块 SVG 是方的，参与判定的话圆外的四个角也算在悬浮窗上 */
+  pointer-events: none;
 }
 .ring circle,
 .c-ring circle {
   fill: none;
 }
 .track {
-  stroke: var(--w-track);
+  stroke: var(--under-line, var(--w-track));
+  transition: stroke 0.35s ease;
 }
 .arc {
-  stroke: var(--plan);
+  stroke: var(--accent);
   stroke-linecap: round;
   stroke-dasharray: 100 100;
   transition:
@@ -303,9 +358,6 @@ body {
 }
 .float:not(.running) .arc {
   opacity: 0.5;
-}
-.float.extra .arc {
-  stroke: var(--over);
 }
 
 /* 翻页：时、分、秒三张小牌（不到 1 小时不显示时），每秒只有秒那张翻；正计时往下翻，倒计时往上翻 */
@@ -323,10 +375,19 @@ body {
   --d-shade: rgba(0, 0, 0, 0.07);
 }
 .float[data-skin='dark'] .w-d {
-  --d-up: #252527;
-  --d-lo: #1b1b1d;
-  --d-gap: #000000;
-  --d-shade: rgba(0, 0, 0, 0.45);
+  --d-up: #323234;
+  --d-lo: #2a2a2c;
+  --d-gap: rgba(0, 0, 0, 0.7);
+  --d-shade: rgba(0, 0, 0, 0.3);
+}
+/* 倒计时学过目标后，和其他形态一样在前面加「+」 */
+.d-sign {
+  display: none;
+  margin-right: -1px;
+  color: var(--accent);
+}
+.float.over .d-sign {
+  display: inline;
 }
 .btn-d {
   flex: none;
@@ -334,7 +395,7 @@ body {
   height: 22px;
   margin-right: -3px;
   border-radius: 50%;
-  background: var(--plan);
+  background: var(--accent);
   color: #ffffff;
   display: grid;
   place-items: center;
@@ -374,7 +435,7 @@ body {
   transition-delay: 0.12s;
 }
 .float.over .fc {
-  color: var(--over);
+  color: var(--accent);
 }
 .sz {
   visibility: hidden;
@@ -448,7 +509,7 @@ body {
   bottom: 2px;
   height: 1.5px;
   border-radius: 1px;
-  background: var(--w-track);
+  background: var(--under-line, var(--w-track));
   overflow: hidden;
   transition:
     opacity 0.35s ease,
@@ -462,16 +523,13 @@ body {
 .d-day {
   position: absolute;
   inset: 0;
-  background: var(--plan);
+  background: var(--accent);
   transform: translateX(-100%);
   transition: transform 0.8s var(--ease-out);
 }
 /* 翻页的细线单独开关（翻页默认不显示），和其他形态的「显示今天的进度」分开 */
 .float:not(.d-day-on) .d-bar {
   opacity: 0;
-}
-.float.extra .d-day {
-  background: var(--over);
 }
 
 /* 极简：平时一个圆点；鼠标停一下（悬停意图见脚本里的 .open）圆点长成按钮；也可以设成按钮一直显示（.pin）。
@@ -492,7 +550,7 @@ body {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--plan);
+  background: var(--accent);
   color: #ffffff;
   display: grid;
   place-items: center;
@@ -620,7 +678,7 @@ body {
   transform: scale(0.8);
 }
 .float:not(.running) .btn-c {
-  color: var(--plan);
+  color: var(--accent);
 }
 .btn-c .pp {
   width: 14px;
@@ -674,23 +732,50 @@ body {
 }
 /* 今天的进度：极简用底色，翻页用底部细线，小圆表用进度环 */
 /* 今天的进度是一条时间线，「现在」永远从左往右走：正计时底色在「现在」左边（走过的），
-   倒计时（.drain）在右边（还剩的）。超过目标变橙。
-   底色两头各多出 4px，轻轻晃动时边上不会露缝 */
+   倒计时（.drain）在右边（还剩的）。学过目标后多出的部分一轮一轮从左边涨（见上面的 data-lv）。
+   液体是静止的，只有「现在」的边缘随时间往前推。颜色按液体的浓度先和底色混好（不透明），
+   这一轮盖在垫着的上一层（.under）上面不会混色；一轮比一轮浓 */
 .float {
-  --liq: var(--plan);
+  --t0: color-mix(in srgb, var(--plan) calc(var(--tide-a) * 100%), var(--w-bg));
+  --t1: color-mix(in srgb, var(--x1) calc(var(--tide-a) * 100%), var(--w-bg));
+  --t2: color-mix(in srgb, var(--x2) calc(var(--tide-a) * 180%), var(--w-bg));
+  --t3: color-mix(in srgb, var(--x3) calc(var(--tide-a) * 260%), var(--w-bg));
+  --liq: var(--t0);
 }
-.float.extra {
-  --liq: var(--over);
+.float[data-lv='1'] {
+  --liq: var(--t1);
 }
-.tide {
+.float[data-lv='2'] {
+  --liq: var(--t2);
+}
+.float[data-lv='3'] {
+  --liq: var(--t3);
+}
+.float[data-under='-1'] {
+  --under: var(--t0);
+}
+.float[data-under='1'] {
+  --under: var(--t1);
+}
+.float[data-under='2'] {
+  --under: var(--t2);
+}
+.tide,
+.under {
   position: absolute;
   top: 0;
   bottom: 0;
   left: -4px;
   right: -4px;
-  overflow: hidden;
+}
+.under {
+  background: var(--under, transparent);
+  transition:
+    opacity 0.35s ease,
+    background-color 0.35s ease;
+}
+.tide {
   background: var(--liq);
-  opacity: var(--tide-a);
   transform: translateX(-100%);
   /* 靠「现在」的边缘柔和地化开，不是一刀切的直边 */
   -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 10px), transparent);
@@ -704,43 +789,11 @@ body {
   -webkit-mask-image: linear-gradient(to left, #000 calc(100% - 10px), transparent);
   mask-image: linear-gradient(to left, #000 calc(100% - 10px), transparent);
 }
-/* 流体感：液体轻轻左右晃，里面一道很淡的光朝「现在」流过去；暂停时光熄掉、晃动慢慢停下 */
-.sheen {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: -40%;
-  width: 40%;
-  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.6), transparent);
-  transition: opacity 0.6s ease;
-}
-.float:not(.running) .sheen {
-  opacity: 0;
-}
-.float.flowing .tide {
-  animation: sway 2.8s ease-in-out infinite alternate;
-}
-.float.flowing .sheen {
-  animation: sheen 5s linear infinite;
-}
-.float.flowing.drain .sheen {
-  animation-direction: reverse;
-}
-@keyframes sway {
-  from {
-    translate: -1.5px 0;
-  }
-  to {
-    translate: 1.5px 0;
-  }
-}
-@keyframes sheen {
-  to {
-    transform: translateX(350%);
-  }
-}
-.float.no-day :is(.tide, .arc) {
+.float.no-day :is(.tide, .under, .arc) {
   opacity: 0 !important;
+}
+.float.no-day .c-ring .track {
+  stroke: var(--w-track);
 }
 .ruler-win,
 .mtrack {
@@ -770,7 +823,7 @@ body {
   right: -240px;
   will-change: transform;
   background:
-    linear-gradient(to right, var(--plan) 1px, transparent 1px) right 1px bottom 0 / 240px 8px
+    linear-gradient(to right, var(--accent) 1px, transparent 1px) right 1px bottom 0 / 240px 8px
       repeat-x,
     linear-gradient(to right, var(--tick2) 1px, transparent 1px) right 1px bottom 0 / 40px 6px
       repeat-x,
@@ -798,7 +851,7 @@ body {
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  background: var(--plan);
+  background: var(--accent);
   transform-origin: left;
   transform: scaleX(0);
 }
@@ -828,7 +881,7 @@ body {
   stroke: var(--tick2);
 }
 .dial line.m {
-  stroke: var(--plan);
+  stroke: var(--accent);
   stroke-width: 1.6;
 }
 .marker {
@@ -842,7 +895,7 @@ body {
 }
 /* 内圈每分钟画满一次；淡入淡出用 stroke-opacity，暂停时的变淡（opacity）不会被动画盖掉 */
 .c-ring circle.marc {
-  stroke: var(--plan);
+  stroke: var(--accent);
   stroke-width: 2;
   stroke-linecap: round;
   stroke-dasharray: 100 100;
