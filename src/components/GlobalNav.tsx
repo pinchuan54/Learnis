@@ -1,6 +1,7 @@
 import { Link, useLocation } from 'react-router';
 import { api } from '../api/client';
 import { usePlans, useSettings, useTimerStatus } from '../api/hooks';
+import { useFloatOpen } from '../features/float/useFloatOpen';
 import { useLiveLearned } from '../features/timer/liveLearned';
 import { useNow } from '../hooks/useNow';
 import { formatClock } from '../lib/format';
@@ -46,6 +47,7 @@ const NAV_ITEMS = [
 export function GlobalNav() {
   const { pathname } = useLocation();
   const { data: settings } = useSettings();
+  const floatOpen = useFloatOpen();
 
   return (
     <header className={styles.nav} data-tauri-drag-region>
@@ -81,11 +83,13 @@ export function GlobalNav() {
       <div className={styles.trailing} data-tauri-drag-region>
         <TimerPill />
         {inTauri && (
+          // 悬浮窗的开关，开着时高亮；和主窗口可以同时出现
           <button
             type="button"
-            className={`${styles.link} ${styles.floatButton}`}
-            aria-label="进入悬浮窗"
-            onClick={() => void api.enterFloat()}
+            className={`${styles.link} ${styles.floatButton} ${floatOpen ? styles.active : ''}`}
+            aria-label="悬浮窗"
+            aria-pressed={floatOpen}
+            onClick={() => void api.toggleFloat()}
             onMouseLeave={(event) => event.currentTarget.blur()}
           >
             <FloatIcon />

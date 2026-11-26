@@ -43,17 +43,26 @@ export function flipTo(card: HTMLElement, text: string, animate: boolean, revers
   const fold = half('flap', first, old);
   const drop = half('flap', second, text);
   card.append(fold, drop);
-  fold.animate([{ transform: 'rotateX(0deg)' }, { transform: `rotateX(${deg}deg)` }], {
-    duration: 230,
-    easing: 'cubic-bezier(0.5, 0, 0.9, 0.5)',
-    fill: 'forwards',
-  }).onfinish = () => fold.remove();
-  drop.animate([{ transform: `rotateX(${-deg}deg)` }, { transform: 'rotateX(0deg)' }], {
-    duration: 300,
-    delay: 230,
-    easing: 'cubic-bezier(0.3, 1.4, 0.6, 1)',
-    fill: 'backwards',
-  }).onfinish = () => {
+  // 翻到竖起来时背着光，暗一些
+  fold.animate(
+    [
+      { transform: 'rotateX(0deg)' },
+      { transform: `rotateX(${deg}deg)`, filter: 'brightness(0.75)' },
+    ],
+    { duration: 230, easing: 'cubic-bezier(0.5, 0, 0.9, 0.5)', fill: 'forwards' },
+  ).onfinish = () => fold.remove();
+  drop.animate(
+    [
+      { transform: `rotateX(${-deg}deg)`, filter: 'brightness(0.75)' },
+      { transform: 'rotateX(0deg)' },
+    ],
+    {
+      duration: 300,
+      delay: 230,
+      easing: 'cubic-bezier(0.3, 1.4, 0.6, 1)',
+      fill: 'backwards',
+    },
+  ).onfinish = () => {
     halves[second].firstElementChild!.textContent = card.dataset.v ?? text;
     drop.remove();
   };

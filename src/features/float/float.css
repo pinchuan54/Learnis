@@ -61,8 +61,9 @@ body {
 .fz {
   position: relative;
 }
-/* 拖角：参考 iPadOS 台前调度窗口右下角的弧形把手。贴着悬浮窗圆角的外沿（同心、隔 2px）画一小段弧，
-   两头渐隐；鼠标停在悬浮窗上才淡淡出现，指到弧上或拖动时变清楚，拖它按比例缩放 */
+/* 拖角：参考 iPadOS 台前调度窗口角上的弧形把手。贴着悬浮窗圆角的外沿（同心、隔 2px）画一小段弧，
+   两头渐隐；鼠标停在悬浮窗上才淡淡出现，指到弧上或拖动时变清楚，拖它按比例缩放。
+   放在悬浮窗里面，跟着悬停放大一起动；位置在贴边方向的对角（默认贴右上，拖角在左下），拖的时候贴着的边不动 */
 .grip {
   --gr: 16px;
   position: absolute;
@@ -79,7 +80,22 @@ body {
   opacity: 0;
   pointer-events: none;
   cursor: nwse-resize;
+  scale: var(--gx, 1) var(--gy, 1);
   transition: opacity 0.25s ease;
+}
+.float[data-ax='right'] .grip {
+  right: auto;
+  left: -4px;
+  --gx: -1;
+}
+.float[data-ay='bottom'] .grip {
+  bottom: auto;
+  top: -4px;
+  --gy: -1;
+}
+.float[data-ax='right']:not([data-ay='bottom']) .grip,
+.float[data-ay='bottom']:not([data-ax='right']) .grip {
+  cursor: nesw-resize;
 }
 .float[data-form='flip'] .grip {
   --gr: 10px;
@@ -98,8 +114,8 @@ body {
 .float.resizing .grip {
   opacity: 0.9;
 }
-/* 三套配色：浅色、深色跟着 Learnis 的外观走，灵动岛黑固定（页面按深色取计划颜色）。
-   计划颜色、超时橙用 palette.css 里的变量，跟着 <html data-theme> 切换。
+/* 两套配色：白、黑（设置里选「跟随系统」时按系统的浅色 / 深色二选一），和 Learnis 的外观无关。
+   计划颜色、超时橙用 palette.css 里的变量，页面按配色设 <html data-theme>，白取浅色那套、黑取深色那套。
    投影比原型收一点，窗口边距放得下，不会被窗口边缘切掉 */
 .float {
   --over: var(--status-overtime);
@@ -114,20 +130,10 @@ body {
   --w-btn: rgba(0, 0, 0, 0.05);
   --w-btn-hover: rgba(0, 0, 0, 0.09);
 }
-.float[data-skin='dark'],
-.float[data-skin='island'] {
-  --w-bg: #1d1d1f;
-  --w-fg: #f5f5f7;
-  --w-fg2: #8e8e93;
-  --w-track: rgba(255, 255, 255, 0.12);
-  --w-edge: rgba(255, 255, 255, 0.12);
-  --w-shadow: 0 5px 14px rgba(0, 0, 0, 0.5), 0 1px 3px rgba(0, 0, 0, 0.3);
-  --w-btn: rgba(255, 255, 255, 0.08);
-  --w-btn-hover: rgba(255, 255, 255, 0.14);
-}
-.float[data-skin='island'] {
+.float[data-skin='dark'] {
   --w-bg: #000000;
   --w-fg: #ffffff;
+  --w-fg2: #8e8e93;
   --w-track: rgba(255, 255, 255, 0.16);
   --w-edge: rgba(255, 255, 255, 0.07);
   --w-shadow: 0 5px 14px rgba(0, 0, 0, 0.35), 0 1px 3px rgba(0, 0, 0, 0.2);
@@ -154,12 +160,12 @@ body {
     color 0.35s ease,
     box-shadow 0.35s ease,
     padding 0.34s cubic-bezier(0.32, 1.28, 0.5, 1),
-    transform 0.26s var(--ease-spring),
     scale 0.34s cubic-bezier(0.32, 1.28, 0.5, 1),
-    translate 0.34s cubic-bezier(0.32, 1.28, 0.5, 1);
+    transform-origin 0.34s ease;
 }
 /* 悬停展开时整体再微微放大、投影加深，像轻轻浮起来。放大的中心跟着贴边走：
-   贴右以右边为中心，右边缘仍然贴住；贴左以左边；没贴边以正中（内容在窗口里居中，展开时两边各长一半） */
+   贴右以右边为中心，右边缘仍然贴住；贴左以左边；没贴边以正中（内容在窗口里居中，展开时两边各长一半）。
+   拖动时就保持悬停的样子，不再额外放大，松手不回弹 */
 .float {
   --ox: center;
   --oy: center;
@@ -185,7 +191,7 @@ body {
 .float[data-skin='light'] {
   --w-lift: 0 7px 16px rgba(0, 0, 0, 0.18), 0 2px 5px rgba(0, 0, 0, 0.1);
 }
-.float:is([data-skin='dark'], [data-skin='island']) {
+.float[data-skin='dark'] {
   --w-lift: 0 8px 18px rgba(0, 0, 0, 0.55), 0 2px 6px rgba(0, 0, 0, 0.35);
 }
 .float[data-form='flip'] .w-d,
@@ -194,9 +200,6 @@ body {
 }
 .float[data-form='dial'] .w-c {
   display: grid;
-}
-.float.dragging .w {
-  transform: scale(1.05);
 }
 .tg {
   border: 0;
@@ -313,13 +316,17 @@ body {
   padding: 0 5px;
   border-radius: 10px;
   font-size: 15px;
-  --d-card: #f0f0f3;
+  /* 牌：上半张亮一点，下半张暗一点、靠缝的地方压着一层淡淡的阴影，像真的翻页钟 */
+  --d-up: #f6f6f8;
+  --d-lo: #ebebee;
+  --d-gap: rgba(0, 0, 0, 0.18);
+  --d-shade: rgba(0, 0, 0, 0.07);
 }
-.float:is([data-skin='dark'], [data-skin='island']) .w-d {
-  --d-card: #2c2c2e;
-}
-.float[data-skin='island'] .w-d {
-  --d-card: #1c1c1e;
+.float[data-skin='dark'] .w-d {
+  --d-up: #252527;
+  --d-lo: #1b1b1d;
+  --d-gap: #000000;
+  --d-shade: rgba(0, 0, 0, 0.45);
 }
 .btn-d {
   flex: none;
@@ -342,7 +349,7 @@ body {
   width: 22px;
   margin: 0 2px 0 0;
 }
-.btn-d:active {
+.float:not(.dragging) .btn-d:active {
   scale: 0.8;
   transition-duration: 0.34s, 0.34s, 0.1s;
 }
@@ -357,7 +364,7 @@ body {
   height: 24px;
   padding: 0 4px;
   border-radius: 5px;
-  background: var(--d-card);
+  background: var(--d-lo);
   line-height: 24px;
   perspective: 70px;
   transition: color 0.35s ease;
@@ -380,19 +387,20 @@ body {
   right: 0;
   height: 12px;
   overflow: hidden;
-  background: var(--d-card);
   text-align: center;
 }
 .half.up,
 .flap.up {
   top: 0;
   border-radius: 5px 5px 0 0;
+  background: var(--d-up);
   transform-origin: bottom;
 }
 .half.lo,
 .flap.lo {
   bottom: 0;
   border-radius: 0 0 5px 5px;
+  background: linear-gradient(var(--d-shade), transparent 4px) var(--d-lo);
   transform-origin: top;
 }
 .half b,
@@ -406,19 +414,31 @@ body {
   margin-top: -12px;
 }
 .flap {
-  z-index: 1;
+  z-index: 2;
   backface-visibility: hidden;
 }
-/* 牌中间的分割缝 */
+/* 牌中间的缝：一道深色细缝（翻动的那半张从它上面盖过去），两头是转轴处的小缺口 */
 .fc::after {
   content: '';
   position: absolute;
   left: 0;
   right: 0;
   top: 11.5px;
-  z-index: 2;
+  z-index: 1;
   height: 1px;
-  background: var(--w-bg);
+  background: var(--d-gap);
+}
+.fc::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 10px;
+  z-index: 3;
+  height: 4px;
+  background:
+    radial-gradient(circle at 0 50%, var(--w-bg) 1.5px, transparent 2px),
+    radial-gradient(circle at 100% 50%, var(--w-bg) 1.5px, transparent 2px);
 }
 /* 今天的进度：底部一根细线 */
 .d-bar {
@@ -484,7 +504,7 @@ body {
     scale 0.36s var(--ease-spring);
 }
 /* 按下缩一下，松手带一点回弹 */
-.btn-b:active {
+.float:not(.dragging) .btn-b:active {
   scale: 0.8;
   transition-duration: 0.34s, 0.34s, 0.3s, 0.3s, 0.1s;
 }
@@ -520,7 +540,8 @@ body {
   }
 }
 
-/* C 小圆表：外圈进度，小点每分钟绕一圈，中间时间；移上去中间换成按钮 */
+/* C 小圆表：外圈进度，小点每分钟绕一圈，中间时间；移上去中间换成按钮。
+   按钮只占中心一圈，外圈留给拖动和双击回主窗口，不容易误点成暂停 */
 .w-c {
   position: relative;
   width: 56px;
@@ -536,9 +557,6 @@ body {
 .orbit {
   transform-origin: 28px 28px;
   transition: transform 1s linear;
-}
-.orbit.jump {
-  transition: none;
 }
 .sec {
   fill: var(--w-fg);
@@ -558,7 +576,7 @@ body {
 }
 .btn-c {
   position: absolute;
-  inset: 8px;
+  inset: 14px;
   border-radius: 50%;
   background: var(--w-btn);
   color: var(--w-fg);
@@ -577,7 +595,7 @@ body {
   opacity: 1;
   transform: none;
 }
-.btn-c:active {
+.float:not(.dragging) .btn-c:active {
   transform: scale(0.88);
 }
 /* 小秒：像机械表 6 点钟方向的小秒盘，在「时:分」正下方小一号、用次要色，每秒滚一格；
@@ -605,8 +623,8 @@ body {
   color: var(--plan);
 }
 .btn-c .pp {
-  width: 18px;
-  height: 18px;
+  width: 14px;
+  height: 14px;
 }
 
 /* ---------- 时间流逝感 ---------- */
@@ -617,8 +635,7 @@ body {
   /* 浅色底上液体要深一点才看得清（深色模式是深底上的暗蓝，0.2 就够） */
   --tide-a: 0.22;
 }
-.float[data-skin='dark'],
-.float[data-skin='island'] {
+.float[data-skin='dark'] {
   --tick: rgba(255, 255, 255, 0.24);
   --tick2: rgba(255, 255, 255, 0.48);
   --tide-a: 0.2;
@@ -626,7 +643,7 @@ body {
 .w-b {
   position: relative;
 }
-.w-b > :not(.flow) {
+.w-b > :not(.flow, .grip) {
   position: relative;
 }
 /* 刻度、分钟线从数字下方开始（圆点和按钮的位置让出来），展开时也不会压到按钮 */
@@ -788,11 +805,12 @@ body {
 /* 小圆表：刻度盘每分钟转一圈（像 Session 的转盘），或内圈每分钟画满一圈 */
 .dial,
 .marker,
-.marc {
+.marc,
+.mring {
   display: none;
 }
 .float[data-flow='ruler'] :is(.dial, .marker),
-.float[data-flow='minuteLine'] .marc {
+.float[data-flow='minuteLine'] :is(.marc, .mring) {
   display: inline;
 }
 .float:is([data-flow='ruler'], [data-flow='minuteLine']) .orbit {
@@ -818,12 +836,18 @@ body {
   stroke-width: 1.4;
   stroke-linecap: round;
 }
+.c-ring circle.mring {
+  stroke: var(--w-track);
+  stroke-width: 2;
+}
+/* 内圈每分钟画满一次；淡入淡出用 stroke-opacity，暂停时的变淡（opacity）不会被动画盖掉 */
 .c-ring circle.marc {
   stroke: var(--plan);
   stroke-width: 2;
   stroke-linecap: round;
   stroke-dasharray: 100 100;
   stroke-dashoffset: 100;
+  stroke-opacity: 0;
 }
 .sec {
   transform-box: fill-box;
@@ -877,14 +901,15 @@ body {
 @keyframes marc {
   0% {
     stroke-dashoffset: 100;
-    opacity: 1;
+    stroke-opacity: 0;
   }
+  2%,
   95% {
-    opacity: 1;
+    stroke-opacity: 1;
   }
   100% {
     stroke-dashoffset: 0;
-    opacity: 0;
+    stroke-opacity: 0;
   }
 }
 

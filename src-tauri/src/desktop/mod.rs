@@ -30,14 +30,13 @@ pub fn setup<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
     Ok(())
 }
 
-/// 显示并聚焦主窗口；主窗口和悬浮窗同时只出现一个，所以顺带关掉悬浮窗
+/// 显示并聚焦主窗口（悬浮窗开着就照旧开着）
 pub fn show_main_window<R: Runtime>(app: &AppHandle<R>) {
     if let Some(window) = app.get_webview_window("main") {
         let _ = window.unminimize();
         let _ = window.show();
         let _ = window.set_focus();
     }
-    float::close(app);
 }
 
 /// 主窗口当前是否在前台（在前台时不必再弹系统通知）

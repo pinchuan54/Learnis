@@ -301,11 +301,11 @@ pub async fn set_autostart<R: Runtime>(app: AppHandle<R>, enabled: bool) -> AppR
 
 // ---------- 悬浮窗 ----------
 
-/// 进入悬浮窗：收起主窗口、打开悬浮窗
+/// 打开 / 关掉悬浮窗（主窗口顶栏的按钮）
 #[cfg(desktop)]
 #[tauri::command]
-pub async fn enter_float<R: Runtime>(app: AppHandle<R>) {
-    desktop::float::enter(&app);
+pub async fn toggle_float<R: Runtime>(app: AppHandle<R>) {
+    desktop::float::toggle(&app);
 }
 
 /// 关掉悬浮窗（悬浮窗右键「隐藏悬浮窗」）
@@ -315,7 +315,7 @@ pub async fn close_float<R: Runtime>(app: AppHandle<R>) {
     desktop::float::close(&app);
 }
 
-/// 回到主窗口（双击悬浮窗、右键「打开 Learnis」），悬浮窗随之关掉
+/// 回到主窗口（双击悬浮窗、右键「打开 Learnis」），悬浮窗照旧开着
 #[cfg(desktop)]
 #[tauri::command]
 pub async fn open_main_window<R: Runtime>(app: AppHandle<R>) {
