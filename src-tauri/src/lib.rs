@@ -8,6 +8,7 @@
 //!
 //! 平台差异用 `cfg(desktop)` / `cfg(target_os = ...)` 隔离，便于以后移植到 macOS / Linux。
 
+mod applog;
 mod commands;
 mod db;
 #[cfg(desktop)]
@@ -37,6 +38,9 @@ pub fn run() {
         .plugin(desktop::startup::plugin())
         // 主窗口：设置为「关闭到托盘」时关闭只是隐藏；关到托盘或最小化时按设置打开悬浮窗
         .on_window_event(|window, event| {
+            if let tauri::WindowEvent::Destroyed = event {
+                applog::write(&format!("窗口 {} 已销毁", window.label()));
+            }
             if window.label() != "main" {
                 return;
             }
@@ -57,6 +61,8 @@ pub fn run() {
     builder
         .plugin(tauri_plugin_notification::init())
         .setup(|app| {
+            applog::init(app.path().app_log_dir()?);
+            applog::write(&format!("启动 v{}", app.package_info().version));
             let db = open_database(app.handle())?;
             app.manage(db);
             #[cfg(desktop)]
@@ -112,10 +118,26 @@ pub fn run() {
             #[cfg(desktop)]
             commands::close_float,
             #[cfg(desktop)]
+            commands::set_float_passthrough,
+            #[cfg(desktop)]
             commands::open_main_window,
         ])
-        .run(tauri::generate_context!())
-        .expect("启动 Learnis 失败");
+        .build(tauri::generate_context!())
+        .expect("启动 Learnis 失败")
+        .run(|_app, event| match event {
+            // 窗口都关了也不退出，托盘还在（「打开 Learnis」会重新建主窗口）；
+            // 只有托盘「退出」、安装更新这类程序自己发起的退出才真的退出（#64）
+            tauri::RunEvent::ExitRequested {
+                code: None, api, ..
+            } => {
+                applog::write("窗口都关了，继续留在托盘");
+                api.prevent_exit();
+            }
+            tauri::RunEvent::ExitRequested {
+                code: Some(code), ..
+            } => applog::write(&format!("退出（{code}）")),
+            _ => {}
+        });
 }
 
 /// 打开应用数据目录下的数据库。开发版使用单独的文件，避免影响正式数据。

@@ -30,6 +30,7 @@ import { DialTicks, FlipCard, PlayPause, Rolling } from './parts';
 import { arcStyle, formatClock, liquidShift, pad2, reading, timeline } from './timeline';
 import { useLiveTimer } from './liveTimer';
 import { useFlowSync } from './useFlowSync';
+import { usePassthrough } from './usePassthrough';
 import { usePlacement } from './usePlacement';
 import { useSystemTheme } from './useSystemTheme';
 
@@ -138,6 +139,7 @@ function FloatWidget({ settings, status, plans, systemTheme }: WidgetProps) {
     locked: settings.floatLocked,
     onShown,
   });
+  usePassthrough();
 
   useFlowSync(root, `${form}/${settings.floatFlow}/${mode}`, base, running);
 

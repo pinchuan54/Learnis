@@ -8,7 +8,7 @@ mod tray;
 pub mod updater;
 mod watcher;
 
-use tauri::{AppHandle, Emitter, Manager, Runtime};
+use tauri::{AppHandle, Emitter, Manager, Runtime, WebviewWindowBuilder};
 use tauri_plugin_notification::NotificationExt;
 
 use crate::db::Db;
@@ -30,9 +30,20 @@ pub fn setup<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
     Ok(())
 }
 
-/// 显示并聚焦主窗口（悬浮窗开着就照旧开着）
+/// 显示并聚焦主窗口（悬浮窗开着就照旧开着）；主窗口不在了就按配置重新建一个（#64）
 pub fn show_main_window<R: Runtime>(app: &AppHandle<R>) {
-    if let Some(window) = app.get_webview_window("main") {
+    let window = app.get_webview_window("main").or_else(|| {
+        let config = app
+            .config()
+            .app
+            .windows
+            .iter()
+            .find(|w| w.label == "main")?;
+        WebviewWindowBuilder::from_config(app, config)
+            .and_then(|builder| builder.build())
+            .ok()
+    });
+    if let Some(window) = window {
         let _ = window.unminimize();
         let _ = window.show();
         let _ = window.set_focus();

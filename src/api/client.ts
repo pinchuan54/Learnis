@@ -127,6 +127,8 @@ export const api = {
   enterFloat: () => call<void>('enter_float'),
   /** 关掉悬浮窗 */
   closeFloat: () => call<void>('close_float'),
+  /** 悬浮窗点击穿透：鼠标在形状外面时打开 */
+  setFloatPassthrough: (on: boolean) => call<void>('set_float_passthrough', { on }),
   /** 回到主窗口（悬浮窗照旧开着） */
   openMainWindow: () => call<void>('open_main_window'),
 
