@@ -315,6 +315,13 @@ pub async fn close_float<R: Runtime>(app: AppHandle<R>) {
     desktop::float::close(&app);
 }
 
+/// 悬浮窗点击穿透：鼠标在形状外面时打开，点击落到下面的软件
+#[cfg(desktop)]
+#[tauri::command]
+pub async fn set_float_passthrough<R: Runtime>(app: AppHandle<R>, on: bool) {
+    desktop::float::set_passthrough(&app, on);
+}
+
 /// 回到主窗口（双击悬浮窗、右键「打开 Learnis」），悬浮窗照旧开着
 #[cfg(desktop)]
 #[tauri::command]
